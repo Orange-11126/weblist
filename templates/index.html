@@ -4,172 +4,152 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人网盘</title>
-    <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/themes.css">
-    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="/static/css/glassmorphism.css">
 </head>
 <body>
-    <div class="app-container">
-        <header class="app-header">
-            <div class="header-content">
-                <button class="menu-toggle" id="menuToggle">
-                    <span class="hamburger"></span>
+    <div class="glass-app-container">
+        <header class="glass-header">
+            <div class="glass glass-header-content">
+                <button class="menu-toggle" id="menuToggle" style="display: none; background: none; border: none; padding: 10px; cursor: pointer;">
+                    <span class="hamburger" style="display: block; width: 20px; height: 2px; background: var(--glass-text-primary); position: relative;"></span>
                 </button>
-                <div class="logo">
-                    <img src="/static/assets/logo.svg" alt="Logo" onerror="this.style.display='none'">
-                    <span class="logo-text" id="siteTitle">个人网盘</span>
-                </div>
-                <nav class="main-nav">
-                    <a href="/" class="nav-item active">文件</a>
-                    <a href="/settings" class="nav-item">设置</a>
+                <a href="#" class="glass-logo">
+                    <img src="/static/assets/logo.svg" alt="Logo" onerror="this.style.display='none'" style="height: 32px;">
+                    <div class="glass-logo-icon" style="display: none;">☁️</div>
+                    <span class="glass-logo-text" id="siteTitle">个人网盘</span>
+                </a>
+                
+                <nav class="glass-nav" id="mainNav">
+                    <a href="/" class="glass-nav-item active">文件</a>
                 </nav>
-                <div class="user-info">
-                    <span id="userDisplay">未登录</span>
-                    <button class="btn btn-sm" id="loginBtn">登录</button>
+                
+                <div class="glass-user-info">
+                    <span id="userDisplay" style="color: var(--glass-text-secondary); margin-right: 12px;">未登录</span>
+                    <button class="glass-button glass-button-secondary" style="padding: 6px 14px; font-size: 13px;" id="loginBtn">登录</button>
                 </div>
             </div>
         </header>
 
-        <div class="main-layout">
-            <aside class="sidebar" id="sidebar">
-                <nav class="sidebar-nav">
-                    <a href="#" class="nav-link active" data-path="/">
-                        <span class="icon">📁</span>
-                        <span class="text">所有文件</span>
-                    </a>
-                    <a href="#" class="nav-link" data-path="/recent">
-                        <span class="icon">🕒</span>
-                        <span class="text">最近使用</span>
-                    </a>
-                    <a href="#" class="nav-link" data-path="/shared">
-                        <span class="icon">🔗</span>
-                        <span class="text">我的分享</span>
-                    </a>
-                </nav>
-                <div class="storage-info">
-                    <div class="storage-label">存储空间</div>
-                    <div class="storage-bar">
-                        <div class="storage-used" id="storageUsed" style="width: 0%"></div>
-                    </div>
-                    <div class="storage-text" id="storageText">0 B / 0 B</div>
-                </div>
-            </aside>
-
-            <main class="main-content">
-                <div class="content-header">
-                    <div class="breadcrumb" id="breadcrumb">
+        <div class="glass-main-layout">
+            <main class="glass-main-content" style="width: 100%;">
+                <div class="glass-content-header">
+                    <div class="glass-breadcrumb" id="breadcrumb">
                         <a href="#" data-path="/">根目录</a>
                     </div>
-                    <div class="content-actions">
-                        <button class="btn btn-primary" id="uploadBtn">
+                    <div class="glass-content-actions">
+                        <button class="glass-button" id="uploadBtn">
                             <span>📤</span> 上传文件
                         </button>
-                        <button class="btn btn-secondary" id="newFolderBtn">
+                        <button class="glass-button glass-button-secondary" id="newFolderBtn">
                             <span>📁</span> 新建文件夹
                         </button>
                     </div>
                 </div>
 
-                <div class="toolbar">
-                    <div class="search-box">
+                <div class="glass glass-toolbar">
+                    <div class="glass-search-box">
+                        <span>🔍</span>
                         <input type="text" placeholder="搜索文件..." id="searchInput">
-                        <button class="search-btn" id="searchBtn">🔍</button>
                     </div>
-                    <div class="view-toggle">
-                        <button class="view-btn active" data-view="grid" id="gridViewBtn">▦</button>
-                        <button class="view-btn" data-view="list" id="listViewBtn">☰</button>
+                    <div class="glass-view-toggle">
+                        <button class="glass-view-btn active" data-view="grid" id="gridViewBtn">▦</button>
+                        <button class="glass-view-btn" data-view="list" id="listViewBtn">☰</button>
                     </div>
                 </div>
 
-                <div class="file-manager" id="fileManager">
-                    <div class="loading" id="loading">
-                        <div class="spinner"></div>
+                <div class="glass glass-file-manager" id="fileManager">
+                    <div class="glass-loading" id="loading">
+                        <div class="glass-spinner"></div>
                         <span>加载中...</span>
                     </div>
-                    <div class="file-grid" id="fileGrid"></div>
+                    <div class="glass-file-grid" id="fileGrid"></div>
                 </div>
             </main>
         </div>
 
-        <footer class="app-footer" id="appFooter">
+        <footer class="glass-footer" id="appFooter">
             <p>&copy; 2024 个人网盘</p>
         </footer>
     </div>
 
-    <div class="modal" id="loginModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>管理员登录</h3>
-                <button class="modal-close" id="closeLoginModal">&times;</button>
+    <div class="glass-modal" id="loginModal">
+        <div class="glass glass-modal-content">
+            <div class="glass-modal-header">
+                <h3>登录</h3>
+                <button class="glass-modal-close" id="closeLoginModal">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="glass-modal-body">
                 <form id="loginForm">
-                    <div class="form-group">
+                    <div class="glass-form-group">
                         <label>用户名</label>
-                        <input type="text" id="loginUsername" required>
+                        <input type="text" class="glass-input" id="loginUsername" required>
                     </div>
-                    <div class="form-group">
+                    <div class="glass-form-group">
                         <label>密码</label>
-                        <input type="password" id="loginPassword" required>
+                        <input type="password" class="glass-input" id="loginPassword" required>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">登录</button>
+                    <button type="submit" class="glass-button" style="width: 100%; justify-content: center;">登录</button>
                 </form>
+                <div style="margin-top: 20px; text-align: center; font-size: 14px;">
+                    <a href="/register" style="color: var(--glass-primary); text-decoration: none; margin-right: 20px;">注册账户</a>
+                    <a href="/reset-password" style="color: var(--glass-text-secondary); text-decoration: none;">忘记密码？</a>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="uploadModal">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="glass-modal" id="uploadModal">
+        <div class="glass glass-modal-content">
+            <div class="glass-modal-header">
                 <h3>上传文件</h3>
-                <button class="modal-close" id="closeUploadModal">&times;</button>
+                <button class="glass-modal-close" id="closeUploadModal">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📤</div>
-                    <p>拖拽文件到此处或点击选择文件</p>
+            <div class="glass-modal-body">
+                <div class="glass-upload-area" id="uploadArea">
+                    <div class="glass-upload-icon">📤</div>
+                    <p class="glass-upload-text">拖拽文件到此处或点击选择文件</p>
                     <input type="file" id="fileInput" multiple hidden>
                 </div>
-                <div class="upload-list" id="uploadList"></div>
+                <div class="upload-list" id="uploadList" style="margin-top: 16px;"></div>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="newFolderModal">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="glass-modal" id="newFolderModal">
+        <div class="glass glass-modal-content">
+            <div class="glass-modal-header">
                 <h3>新建文件夹</h3>
-                <button class="modal-close" id="closeFolderModal">&times;</button>
+                <button class="glass-modal-close" id="closeFolderModal">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="glass-modal-body">
                 <form id="newFolderForm">
-                    <div class="form-group">
+                    <div class="glass-form-group">
                         <label>文件夹名称</label>
-                        <input type="text" id="folderName" required>
+                        <input type="text" class="glass-input" id="folderName" required>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">创建</button>
+                    <button type="submit" class="glass-button" style="width: 100%; justify-content: center;">创建</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="confirmModal">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
+    <div class="glass-modal" id="confirmModal">
+        <div class="glass glass-modal-content glass-modal-sm">
+            <div class="glass-modal-header">
                 <h3 id="confirmTitle">确认</h3>
-                <button class="modal-close" id="closeConfirmModal">&times;</button>
+                <button class="glass-modal-close" id="closeConfirmModal">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="glass-modal-body">
                 <p id="confirmMessage"></p>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="confirmCancel">取消</button>
-                <button class="btn btn-danger" id="confirmOk">确认</button>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="confirmCancel">取消</button>
+                <button class="glass-button glass-button-danger" id="confirmOk">确认</button>
             </div>
         </div>
     </div>
 
-    <div class="context-menu" id="contextMenu">
+    <div class="glass-context-menu" id="contextMenu">
         <ul>
             <li data-action="download">📥 下载</li>
             <li data-action="share">🔗 分享</li>
@@ -179,7 +159,7 @@
         </ul>
     </div>
 
-    <div class="toast-container" id="toastContainer"></div>
+    <div class="glass-toast-container" id="toastContainer"></div>
 
     <script src="/static/js/api.js"></script>
     <script src="/static/js/state.js"></script>

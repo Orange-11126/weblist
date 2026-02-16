@@ -2,22 +2,20 @@ import json
 import os
 from pan123 import Pan123
 
-# 全局实例
+SETTINGS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
+
 _pan_instance = None
 
 def _get_pan_instance():
     """获取Pan123实例，如果未初始化则初始化"""
     global _pan_instance
     if _pan_instance is None:
-        # 读取settings.json配置文件
-        settings_path = "settings.json"
-        if os.path.exists(settings_path):
-            with open(settings_path, 'r', encoding='utf-8') as f:
+        if os.path.exists(SETTINGS_PATH):
+            with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
                 settings = json.load(f)
         else:
             settings = {}
         
-        # 创建Pan123实例
         _pan_instance = Pan123()
     return _pan_instance
 
@@ -69,28 +67,24 @@ def login(username=None, password=None):
         {"status": "success"} 或 {"error": "错误信息"}
     """
     try:
-        settings_path = "settings.json"
         settings = {}
         
-        if os.path.exists(settings_path):
-            with open(settings_path, 'r', encoding='utf-8') as f:
+        if os.path.exists(SETTINGS_PATH):
+            with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
                 settings = json.load(f)
         
-        # 确定使用的用户名和密码
         use_username = username or settings.get("username")
         use_password = password or settings.get("password")
         
         if not use_username or not use_password:
             return {"error": "用户名或密码未提供"}
         
-        # 只有在提供了新凭据时才更新settings.json
         if username and password:
             settings["username"] = username
             settings["password"] = password
-            with open(settings_path, 'w', encoding='utf-8') as f:
+            with open(SETTINGS_PATH, 'w', encoding='utf-8') as f:
                 json.dump(settings, f, ensure_ascii=False, indent=2)
         
-        # 创建新的Pan123实例并登录
         global _pan_instance
         _pan_instance = Pan123(readfile=False, user_name=use_username, pass_word=use_password)
         
@@ -113,10 +107,9 @@ def list():
         pan = _get_pan_instance()
         
         # 检查settings.json中的default-path
-        settings_path = "settings.json"
         default_path = None
-        if os.path.exists(settings_path):
-            with open(settings_path, 'r', encoding='utf-8') as f:
+        if os.path.exists(SETTINGS_PATH):
+            with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
                 settings = json.load(f)
                 default_path = settings.get("default-path")
         
@@ -315,14 +308,13 @@ def share(path):
     except Exception as e:
         return {"error": str(e)}
 
-def upload(local_path, remote_path="/", file_name=None):
+def upload(local_path, remote_path="/"):
     """
     上传文件
     
     参数:
         local_path: 本地文件路径
         remote_path: 远程路径，默认为根目录
-        file_name: 指定文件名（可选），如果不指定则从路径提取
     
     返回:
         {"status": "success"}
@@ -338,7 +330,7 @@ def upload(local_path, remote_path="/", file_name=None):
         
         pan = _get_pan_instance()
         pan.parent_file_id = folder_id
-        pan.up_load(local_path, file_name)
+        pan.up_load(local_path)
         
         return {"status": "success"}
     except Exception as e:

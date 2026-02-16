@@ -3,6 +3,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
 });
 
+let currentPage = 1;
+let pageSize = 50;
+let totalItems = 0;
+let isLoadingMore = false;
+let maxDepth = 0;
+let currentDepth = 0;
+
 async function initApp() {
     const savedView = localStorage.getItem('viewMode') || 'grid';
     State.setView(savedView);
@@ -45,68 +52,205 @@ function applyConfig(config) {
 async function checkAuth() {
     const token = localStorage.getItem('token');
     if (token) {
-        const userDisplay = document.getElementById('userDisplay');
-        if (userDisplay) userDisplay.textContent = '管理员';
+        try {
+            const result = await API.checkAuth();
+            if (result.code === 200 && result.data) {
+                const user = result.data;
+                const userDisplay = document.getElementById('userDisplay');
+                if (userDisplay) userDisplay.textContent = user.username;
+                
+                State.setUser(user);
+                
+                if (user.user_type === 'admin' || user.roles?.includes('admin')) {
+                    showAdminPanel();
+                }
+                
+                updateLoginButton(true);
+                return true;
+            }
+        } catch (e) {
+            console.error('Auth check failed:', e);
+        }
+    }
+    updateLoginButton(false);
+    return false;
+}
+
+function showAdminPanel() {
+    const userInfo = document.querySelector('.glass-user-info');
+    if (!userInfo) return;
+    
+    const existingAdminBtn = document.getElementById('adminPanelBtn');
+    if (existingAdminBtn) return;
+    
+    const adminBtn = document.createElement('a');
+    adminBtn.id = 'adminPanelBtn';
+    adminBtn.href = '/user-management';
+    adminBtn.className = 'glass-button';
+    adminBtn.style.cssText = 'padding: 6px 14px; font-size: 13px; margin-right: 12px;';
+    adminBtn.innerHTML = '<span>⚙️</span> 管理面板';
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        userInfo.insertBefore(adminBtn, logoutBtn);
+    } else {
+        userInfo.insertBefore(adminBtn, userInfo.firstChild);
     }
 }
 
-async function loadFiles(path) {
+function updateLoginButton(isLoggedIn) {
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    if (isLoggedIn) {
+        if (loginBtn) {
+            loginBtn.textContent = '退出';
+            loginBtn.id = 'logoutBtn';
+            loginBtn.onclick = () => {
+                API.logout();
+                window.location.reload();
+            };
+        }
+    } else {
+        if (logoutBtn && logoutBtn.textContent === '退出') {
+            logoutBtn.textContent = '登录';
+            logoutBtn.id = 'loginBtn';
+        }
+    }
+}
+
+async function loadFiles(path, page = 1, append = false) {
     const fileManager = document.getElementById('fileManager');
     const loading = document.getElementById('loading');
     const fileGrid = document.getElementById('fileGrid');
     
-    loading.style.display = 'flex';
-    fileGrid.innerHTML = '';
+    if (!append) {
+        loading.style.display = 'flex';
+        fileGrid.innerHTML = '';
+        currentPage = 1;
+    }
     
     const cached = State.getCachedFiles(path);
-    if (cached) {
+    if (cached && !append) {
         renderFiles(cached);
         loading.style.display = 'none';
+        updateDepthInfo(cached);
         return;
     }
     
-    const result = await API.listFiles(path);
+    const result = await API.listFiles(path, page, pageSize);
     
     loading.style.display = 'none';
     
     if (result.code === 200 && result.data) {
-        State.cacheFiles(path, result.data);
-        renderFiles(result.data);
+        if (!append) {
+            State.cacheFiles(path, result.data);
+        }
+        renderFiles(result.data, append);
         updateBreadcrumb(path);
+        updateDepthInfo(result.data);
+        
+        totalItems = result.data.total || (result.data.folders?.length || 0) + (result.data.files?.length || 0);
+        currentPage = page;
+    } else if (result.code === 403) {
+        showDepthError(result.message);
+        Utils.showToast(result.message, 'error');
     } else {
         showEmptyState();
         Utils.showToast(result.message || '加载失败', 'error');
     }
 }
 
-function renderFiles(data) {
+function updateDepthInfo(data) {
+    maxDepth = data.max_depth || 0;
+    currentDepth = data.current_depth || 0;
+    
+    const depthIndicator = document.getElementById('depthIndicator');
+    if (depthIndicator && maxDepth > 0) {
+        depthIndicator.style.display = 'block';
+        depthIndicator.innerHTML = `<span class="glass-tag ${currentDepth >= maxDepth ? 'glass-tag-warning' : ''}">层级: ${currentDepth}/${maxDepth}</span>`;
+    } else if (depthIndicator) {
+        depthIndicator.style.display = 'none';
+    }
+}
+
+function showDepthError(message) {
     const fileGrid = document.getElementById('fileGrid');
-    fileGrid.innerHTML = '';
+    fileGrid.innerHTML = `
+        <div class="glass-empty-state">
+            <div class="glass-empty-icon">🚫</div>
+            <p>${Utils.escapeHtml(message)}</p>
+            <button class="glass-button" onclick="goBack()">返回上一级</button>
+        </div>
+    `;
+}
+
+window.goBack = function() {
+    const parentPath = State.currentPath.substring(0, State.currentPath.lastIndexOf('/')) || '/';
+    State.setPath(parentPath);
+    loadFiles(parentPath);
+};
+
+function renderFiles(data, append = false) {
+    const fileGrid = document.getElementById('fileGrid');
+    
+    if (!append) {
+        fileGrid.innerHTML = '';
+    }
     
     const folders = data.folders || data.folder || [];
     const files = data.files || data.file || [];
     
-    if (folders.length === 0 && files.length === 0) {
+    if (folders.length === 0 && files.length === 0 && !append) {
         showEmptyState();
         return;
     }
     
+    const fragment = document.createDocumentFragment();
+    
     folders.forEach(folder => {
         const item = createFileItem(folder, true);
-        fileGrid.appendChild(item);
+        fragment.appendChild(item);
     });
     
     files.forEach(file => {
         const item = createFileItem(file, false);
-        fileGrid.appendChild(item);
+        fragment.appendChild(item);
     });
     
+    fileGrid.appendChild(fragment);
     updateViewMode();
+    setupInfiniteScroll();
+}
+
+function setupInfiniteScroll() {
+    const fileManager = document.getElementById('fileManager');
+    
+    fileManager.removeEventListener('scroll', handleScroll);
+    
+    const totalLoaded = fileManager.querySelectorAll('.glass-file-item').length;
+    if (totalItems > totalLoaded) {
+        fileManager.addEventListener('scroll', handleScroll);
+    }
+}
+
+function handleScroll() {
+    if (isLoadingMore) return;
+    
+    const fileManager = document.getElementById('fileManager');
+    const scrollBottom = fileManager.scrollHeight - fileManager.scrollTop - fileManager.clientHeight;
+    
+    if (scrollBottom < 100) {
+        isLoadingMore = true;
+        loadFiles(State.currentPath, currentPage + 1, true).then(() => {
+            isLoadingMore = false;
+        });
+    }
 }
 
 function createFileItem(file, isFolder) {
     const div = document.createElement('div');
-    div.className = 'file-item';
+    div.className = 'glass-file-item';
     div.dataset.id = file.id;
     div.dataset.name = file.name;
     div.dataset.type = isFolder ? 'folder' : 'file';
@@ -115,9 +259,9 @@ function createFileItem(file, isFolder) {
     const size = isFolder ? '' : (file.size_formatted || file.size || '');
     
     div.innerHTML = `
-        <div class="file-icon">${icon}</div>
-        <div class="file-name">${Utils.escapeHtml(file.name)}</div>
-        ${size ? `<div class="file-size">${size}</div>` : ''}
+        <div class="glass-file-icon">${icon}</div>
+        <div class="glass-file-name">${Utils.escapeHtml(file.name)}</div>
+        ${size ? `<div class="glass-file-size">${size}</div>` : ''}
     `;
     
     div.addEventListener('click', (e) => handleFileClick(file, isFolder, e));
@@ -130,7 +274,7 @@ function createFileItem(file, isFolder) {
 function handleFileClick(file, isFolder, e) {
     if (e.ctrlKey || e.metaKey) {
         State.toggleFileSelection(file.id);
-        e.target.closest('.file-item').classList.toggle('selected');
+        e.target.closest('.glass-file-item').classList.toggle('selected');
     }
 }
 
@@ -139,6 +283,15 @@ function handleFileDblClick(file, isFolder) {
         const newPath = State.currentPath === '/' 
             ? `/${file.name}` 
             : `${State.currentPath}/${file.name}`;
+        
+        if (maxDepth > 0) {
+            const newDepth = newPath.strip('/').count('/') + 1;
+            if (newDepth > maxDepth) {
+                Utils.showToast('已达到最大目录深度限制', 'error');
+                return;
+            }
+        }
+        
         State.setPath(newPath);
         loadFiles(newPath);
     } else {
@@ -187,8 +340,8 @@ function updateBreadcrumb(path) {
 function showEmptyState() {
     const fileGrid = document.getElementById('fileGrid');
     fileGrid.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">📂</div>
+        <div class="glass-empty-state">
+            <div class="glass-empty-icon">📂</div>
             <p>此文件夹为空</p>
         </div>
     `;
@@ -199,9 +352,9 @@ function updateViewMode() {
     const view = State.currentView;
     
     if (view === 'list') {
-        fileManager.classList.add('file-list-view');
+        fileManager.classList.add('glass-file-list-view');
     } else {
-        fileManager.classList.remove('file-list-view');
+        fileManager.classList.remove('glass-file-list-view');
     }
 }
 
@@ -214,8 +367,8 @@ function showContextMenu(e, file, isFolder) {
     const x = e.clientX + window.scrollX;
     const y = e.clientY + window.scrollY;
     
-    contextMenu.style.left = `${Math.min(x, window.innerWidth - 160)}px`;
-    contextMenu.style.top = `${Math.min(y, window.innerHeight - 200)}px`;
+    contextMenu.style.left = `${Math.min(x, window.innerWidth - 180)}px`;
+    contextMenu.style.top = `${Math.min(y, window.innerHeight - 220)}px`;
     
     contextMenu.dataset.fileId = file.id;
     contextMenu.dataset.fileName = file.name;
@@ -228,21 +381,18 @@ function hideContextMenu() {
 }
 
 function setupEventListeners() {
-    document.getElementById('menuToggle')?.addEventListener('click', () => {
-        document.getElementById('sidebar')?.classList.toggle('show');
-    });
     
     document.getElementById('gridViewBtn')?.addEventListener('click', () => {
         State.setView('grid');
         updateViewMode();
-        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.glass-view-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('gridViewBtn').classList.add('active');
     });
     
     document.getElementById('listViewBtn')?.addEventListener('click', () => {
         State.setView('list');
         updateViewMode();
-        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.glass-view-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('listViewBtn').classList.add('active');
     });
     
@@ -264,7 +414,15 @@ function setupEventListeners() {
         if (result.code === 200) {
             Utils.showToast('登录成功', 'success');
             document.getElementById('loginModal')?.classList.remove('show');
-            document.getElementById('userDisplay').textContent = '管理员';
+            const user = result.data?.user;
+            if (user) {
+                document.getElementById('userDisplay').textContent = user.username;
+                State.setUser(user);
+                if (user.user_type === 'admin' || user.roles?.includes('admin')) {
+                    showAdminPanel();
+                }
+            }
+            updateLoginButton(true);
         } else {
             Utils.showToast(result.message || '登录失败', 'error');
         }

@@ -61,17 +61,60 @@ const Utils = {
         };
     },
     
-    showToast(message, type = 'success') {
+    showToast(message, type = 'success', duration = 4000) {
         const container = document.getElementById('toastContainer');
+        if (!container) return;
+        
+        const icons = {
+            success: '✓',
+            error: '✕',
+            warning: '⚠',
+            info: 'ℹ'
+        };
+        
+        const titles = {
+            success: '成功',
+            error: '错误',
+            warning: '警告',
+            info: '提示'
+        };
+        
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.textContent = message;
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <div class="toast-content">
+                <div class="toast-title">${titles[type] || '提示'}</div>
+                <div class="toast-message">${this.escapeHtml(message)}</div>
+            </div>
+            <button class="toast-close" aria-label="关闭">×</button>
+            <div class="toast-progress"></div>
+        `;
+        
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => {
+            this.hideToast(toast);
+        });
+        
         container.appendChild(toast);
         
+        if (duration > 0) {
+            setTimeout(() => {
+                this.hideToast(toast);
+            }, duration);
+        }
+        
+        return toast;
+    },
+    
+    hideToast(toast) {
+        if (!toast || toast.classList.contains('hiding')) return;
+        toast.classList.add('hiding');
         setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 300);
     },
     
     showConfirm(title, message) {

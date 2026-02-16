@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户注册</title>
+    <link rel="stylesheet" href="/static/css/glassmorphism.css">
+</head>
+<body>
+    <div class="glass-app-container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div class="glass" style="max-width: 450px; width: 100%; padding: 40px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <a href="/" style="text-decoration: none; color: inherit;">
+                    <div class="glass-logo" style="justify-content: center; margin-bottom: 20px;">
+                        <div class="glass-logo-icon" style="display: inline-flex;">☁️</div>
+                        <span class="glass-logo-text">个人网盘</span>
+                    </div>
+                </a>
+                <h2 style="color: var(--glass-text-primary); margin-bottom: 10px;">创建账户</h2>
+                <p style="color: var(--glass-text-secondary);">填写以下信息注册新账户</p>
+            </div>
+            
+            <form id="registerForm">
+                <div class="glass-form-group">
+                    <label>用户名</label>
+                    <input type="text" class="glass-input" id="username" placeholder="请输入用户名" required>
+                </div>
+                
+                <div class="glass-form-group">
+                    <label>邮箱地址</label>
+                    <input type="email" class="glass-input" id="email" placeholder="请输入邮箱地址" required>
+                </div>
+                
+                <div class="glass-form-group">
+                    <label>密码</label>
+                    <input type="password" class="glass-input" id="password" placeholder="请输入密码" required>
+                    <div class="password-strength" id="passwordStrength" style="margin-top: 8px;"></div>
+                </div>
+                
+                <div class="glass-form-group">
+                    <label>确认密码</label>
+                    <input type="password" class="glass-input" id="confirmPassword" placeholder="请再次输入密码" required>
+                </div>
+                
+                <button type="submit" class="glass-button" style="width: 100%; justify-content: center; margin-top: 10px;">
+                    注册
+                </button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <p style="color: var(--glass-text-secondary);">
+                    已有账户？
+                    <a href="/" style="color: var(--glass-primary); text-decoration: none; font-weight: 500;">立即登录</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="glass-toast-container" id="toastContainer"></div>
+    
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script>
+        const passwordInput = document.getElementById('password');
+        const passwordStrength = document.getElementById('passwordStrength');
+        const registerForm = document.getElementById('registerForm');
+        
+        passwordInput.addEventListener('input', async () => {
+            const password = passwordInput.value;
+            if (!password) {
+                passwordStrength.innerHTML = '';
+                return;
+            }
+            
+            try {
+                const result = await validatePassword(password);
+                updatePasswordStrength(result);
+            } catch (e) {
+                console.error(e);
+            }
+        });
+        
+        function updatePasswordStrength(result) {
+            const colors = {
+                weak: '#ff4d4f',
+                medium: '#faad14',
+                strong: '#52c41a'
+            };
+            
+            const labels = {
+                weak: '弱',
+                medium: '中',
+                strong: '强'
+            };
+            
+            const percentage = (result.score / result.max_score) * 100;
+            
+            passwordStrength.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="flex: 1; height: 6px; background: var(--glass-border); border-radius: 3px; overflow: hidden;">
+                        <div style="width: ${percentage}%; height: 100%; background: ${colors[result.level]}; transition: all 0.3s;"></div>
+                    </div>
+                    <span style="color: ${colors[result.level]}; font-size: 12px; white-space: nowrap;">${labels[result.level]}</span>
+                </div>
+                ${result.errors.length > 0 ? `
+                    <ul style="margin-top: 8px; padding-left: 16px; font-size: 12px; color: #ff4d4f;">
+                        ${result.errors.map(e => `<li>${e}</li>`).join('')}
+                    </ul>
+                ` : ''}
+            `;
+        }
+        
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showToast('两次输入的密码不一致', 'error');
+                return;
+            }
+            
+            try {
+                const result = await registerUser(username, email, password);
+                showToast(result.message, 'success');
+                
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } catch (e) {
+                showToast(e.message || '注册失败', 'error');
+            }
+        });
+        
+        async function registerUser(username, email, password) {
+            const response = await fetch('/api/users/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            });
+            
+            const data = await response.json();
+            if (data.code !== 200) {
+                throw new Error(data.message);
+            }
+            return data;
+        }
+        
+        async function validatePassword(password) {
+            const response = await fetch('/api/users/validate-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password })
+            });
+            
+            const data = await response.json();
+            if (data.code !== 200) {
+                throw new Error(data.message);
+            }
+            return data.data;
+        }
+    </script>
+</body>
+</html>

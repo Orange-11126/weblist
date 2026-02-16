@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>权限管理</title>
+    <link rel="stylesheet" href="/static/css/glassmorphism.css">
+</head>
+<body>
+    <div class="glass-app-container">
+        <header class="glass-header">
+            <div class="glass glass-header-content">
+                <a href="/" class="glass-logo">
+                    <div class="glass-logo-icon">☁️</div>
+                    <span class="glass-logo-text">个人网盘</span>
+                </a>
+                
+                <nav class="glass-nav">
+                    <a href="/" class="glass-nav-item">文件</a>
+                    <a href="/settings" class="glass-nav-item">设置</a>
+                    <a href="/user-management" class="glass-nav-item">用户管理</a>
+                    <a href="/permission-management" class="glass-nav-item active">权限管理</a>
+                </nav>
+                
+                <div class="glass-user-info">
+                    <span id="userDisplay" style="color: var(--glass-text-secondary); margin-right: 12px;">未登录</span>
+                    <button class="glass-button glass-button-secondary" style="padding: 6px 14px; font-size: 13px;" id="logoutBtn">退出</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="glass-main-layout">
+            <main class="glass-main-content" style="width: 100%; padding: 24px;">
+                <div class="glass-content-header">
+                    <h1 style="color: var(--glass-text-primary); margin: 0;">权限管理</h1>
+                    <div class="glass-content-actions">
+                        <button class="glass-button" id="addRoleBtn">
+                            <span>➕</span> 添加角色
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass" style="padding: 0;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--glass-border);">
+                        <h3 style="margin: 0 0 16px 0; color: var(--glass-text-primary);">角色列表</h3>
+                    </div>
+                    <div id="rolesContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 16px;">
+                    </div>
+                </div>
+
+                <div class="glass" style="margin-top: 24px; padding: 0;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--glass-border);">
+                        <h3 style="margin: 0; color: var(--glass-text-primary);">所有权限</h3>
+                    </div>
+                    <div id="permissionsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; padding: 16px;">
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="roleModal">
+        <div class="glass glass-modal-content" style="max-width: 600px;">
+            <div class="glass-modal-header">
+                <h3 id="roleModalTitle">添加角色</h3>
+                <button class="glass-modal-close" id="closeRoleModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <form id="roleForm">
+                    <div class="glass-form-group">
+                        <label>角色名称</label>
+                        <input type="text" class="glass-input" id="modalRoleName" required>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>描述</label>
+                        <textarea class="glass-input" id="modalRoleDescription" rows="3"></textarea>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>权限</label>
+                        <div id="permissionsCheckboxes" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 300px; overflow-y: auto;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="cancelRoleBtn">取消</button>
+                <button class="glass-button" id="saveRoleBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="confirmModal">
+        <div class="glass glass-modal-content glass-modal-sm">
+            <div class="glass-modal-header">
+                <h3>确认</h3>
+                <button class="glass-modal-close" id="closeConfirmModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="confirmCancel">取消</button>
+                <button class="glass-button glass-button-danger" id="confirmOk">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/state.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script>
+        let allPermissions = [];
+        let allRoles = [];
+        let editingRoleId = null;
+
+        async function checkAuth() {
+            try {
+                const result = await API.checkAuth();
+                if (result.code === 200 && result.data) {
+                    document.getElementById('userDisplay').textContent = result.data.username;
+                    return true;
+                } else {
+                    window.location.href = '/';
+                    return false;
+                }
+            } catch (e) {
+                window.location.href = '/';
+                return false;
+            }
+        }
+
+        async function loadPermissions() {
+            try {
+                const response = await fetch('/api/permissions', {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    allPermissions = data.data.permissions;
+                    renderPermissions();
+                    updatePermissionsCheckboxes();
+                }
+            } catch (e) {
+                Utils.showToast('加载权限失败', 'error');
+            }
+        }
+
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/roles', {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    allRoles = data.data.roles;
+                    renderRoles();
+                }
+            } catch (e) {
+                Utils.showToast('加载角色失败', 'error');
+            }
+        }
+
+        function renderPermissions() {
+            const container = document.getElementById('permissionsContainer');
+            container.innerHTML = allPermissions.map(perm => `
+                <div class="glass" style="padding: 12px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--glass-text-primary);">${Utils.escapeHtml(perm.name)}</div>
+                            <div style="font-size: 12px; color: var(--glass-text-secondary);">${Utils.escapeHtml(perm.description || '')}</div>
+                        </div>
+                        ${perm.module ? `<span class="glass-tag">${Utils.escapeHtml(perm.module)}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderRoles() {
+            const container = document.getElementById('rolesContainer');
+            container.innerHTML = allRoles.map(role => `
+                <div class="glass" style="padding: 16px;">
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px;">
+                        <div>
+                            <h4 style="margin: 0 0 4px 0; color: var(--glass-text-primary;">${Utils.escapeHtml(role.name)}</h4>
+                            <p style="margin: 0; font-size: 13px; color: var(--glass-text-secondary);">${Utils.escapeHtml(role.description || '')}</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="glass-button glass-button-sm" onclick="editRole(${role.id})">编辑</button>
+                            ${!['admin', 'user', 'guest'].includes(role.name) ? `
+                                <button class="glass-button glass-button-sm glass-button-danger" onclick="deleteRole(${role.id})">删除</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${role.permissions.map(p => `<span class="glass-tag">${Utils.escapeHtml(p)}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePermissionsCheckboxes(selectedPermissions = []) {
+            const container = document.getElementById('permissionsCheckboxes');
+            container.innerHTML = allPermissions.map(perm => `
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px;">
+                    <input type="checkbox" value="${perm.name}" ${selectedPermissions.includes(perm.name) ? 'checked' : ''}>
+                    <span style="font-size: 13px;">${Utils.escapeHtml(perm.name)}</span>
+                </label>
+            `).join('');
+        }
+
+        function addRole() {
+            editingRoleId = null;
+            document.getElementById('roleModalTitle').textContent = '添加角色';
+            document.getElementById('roleForm').reset();
+            updatePermissionsCheckboxes();
+            document.getElementById('roleModal').classList.add('show');
+        }
+
+        async function editRole(roleId) {
+            const role = allRoles.find(r => r.id === roleId);
+            if (!role) return;
+
+            editingRoleId = roleId;
+            document.getElementById('roleModalTitle').textContent = '编辑角色';
+            document.getElementById('modalRoleName').value = role.name;
+            document.getElementById('modalRoleDescription').value = role.description || '';
+            updatePermissionsCheckboxes(role.permissions);
+            document.getElementById('roleModal').classList.add('show');
+        }
+
+        async function saveRole() {
+            const name = document.getElementById('modalRoleName').value.trim();
+            const description = document.getElementById('modalRoleDescription').value.trim();
+            const permissions = Array.from(document.querySelectorAll('#permissionsCheckboxes input:checked')).map(cb => cb.value);
+
+            if (!name) {
+                Utils.showToast('请输入角色名称', 'error');
+                return;
+            }
+
+            try {
+                const url = editingRoleId ? `/api/roles/${editingRoleId}` : '/api/roles';
+                const method = editingRoleId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API.token}`
+                    },
+                    body: JSON.stringify({ name, description, permissions })
+                });
+
+                const data = await response.json();
+                if (data.code === 200) {
+                    Utils.showToast(editingRoleId ? '角色更新成功' : '角色创建成功', 'success');
+                    document.getElementById('roleModal').classList.remove('show');
+                    await loadRoles();
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (e) {
+                Utils.showToast(e.message || '操作失败', 'error');
+            }
+        }
+
+        function deleteRole(roleId) {
+            showConfirm('确定要删除此角色吗？', async () => {
+                try {
+                    const response = await fetch(`/api/roles/${roleId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${API.token}` }
+                    });
+                    const data = await response.json();
+                    if (data.code === 200) {
+                        Utils.showToast('角色删除成功', 'success');
+                        await loadRoles();
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (e) {
+                    Utils.showToast(e.message || '删除失败', 'error');
+                }
+            });
+        }
+
+        function showConfirm(message, onConfirm) {
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').classList.add('show');
+            
+            const okBtn = document.getElementById('confirmOk');
+            const cancelBtn = document.getElementById('confirmCancel');
+            const closeBtn = document.getElementById('closeConfirmModal');
+            
+            const handler = async () => {
+                okBtn.removeEventListener('click', handler);
+                cancelBtn.removeEventListener('click', closeHandler);
+                closeBtn.removeEventListener('click', closeHandler);
+                document.getElementById('confirmModal').classList.remove('show');
+                await onConfirm();
+            };
+            
+            const closeHandler = () => {
+                okBtn.removeEventListener('click', handler);
+                cancelBtn.removeEventListener('click', closeHandler);
+                closeBtn.removeEventListener('click', closeHandler);
+                document.getElementById('confirmModal').classList.remove('show');
+            };
+            
+            okBtn.addEventListener('click', handler);
+            cancelBtn.addEventListener('click', closeHandler);
+            closeBtn.addEventListener('click', closeHandler);
+        }
+
+        function initEventListeners() {
+            document.getElementById('addRoleBtn').addEventListener('click', addRole);
+            document.getElementById('saveRoleBtn').addEventListener('click', saveRole);
+            document.getElementById('cancelRoleBtn').addEventListener('click', () => {
+                document.getElementById('roleModal').classList.remove('show');
+            });
+            document.getElementById('closeRoleModal').addEventListener('click', () => {
+                document.getElementById('roleModal').classList.remove('show');
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                API.logout();
+                window.location.href = '/';
+            });
+        }
+
+        async function init() {
+            if (await checkAuth()) {
+                await loadPermissions();
+                await loadRoles();
+                initEventListeners();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

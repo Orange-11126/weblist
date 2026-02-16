@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI测试 - 毛玻璃设计</title>
+    <link rel="stylesheet" href="/static/css/glassmorphism.css">
+    <style>
+        .test-section {
+            margin-bottom: 48px;
+        }
+        
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--glass-text-primary);
+            margin-bottom: 16px;
+            padding-left: 8px;
+            border-left: 4px solid var(--glass-accent);
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .test-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .demo-card {
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .demo-card-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        
+        .demo-card-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .demo-card-desc {
+            font-size: 13px;
+            color: var(--glass-text-muted);
+        }
+        
+        .glass-test-header {
+            margin-bottom: 32px;
+            padding: 24px;
+        }
+        
+        .glass-test-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .glass-test-header p {
+            color: var(--glass-text-secondary);
+        }
+        
+        .color-swatch {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-app-container">
+        <!-- 顶部导航栏 -->
+        <header class="glass-header">
+            <div class="glass glass-header-content">
+                <a href="#" class="glass-logo">
+                    <div class="glass-logo-icon">☁️</div>
+                    <span class="glass-logo-text">123云盘</span>
+                </a>
+                
+                <nav class="glass-nav">
+                    <a href="#" class="glass-nav-item active">文件</a>
+                    <a href="#" class="glass-nav-item">设置</a>
+                </nav>
+                
+                <div class="glass-user-info">
+                    <span style="color: var(--glass-text-secondary); margin-right: 12px;">管理员</span>
+                    <div class="glass-user-avatar">👤</div>
+                </div>
+            </div>
+        </header>
+
+        <main style="flex: 1; max-width: 1400px; margin: 0 auto; width: 100%; padding: 24px;">
+            <!-- 页面标题 -->
+            <div class="glass glass-test-header">
+                <h1>🎨 UI 测试页面</h1>
+                <p>毛玻璃设计风格 - 深蓝色主题</p>
+            </div>
+
+            <!-- 颜色展示 -->
+            <section class="test-section">
+                <h2 class="test-title">主题色彩</h2>
+                <div class="glass">
+                    <div style="padding: 20px;">
+                        <div class="test-grid">
+                            <div>
+                                <div class="color-swatch" style="background: #003366; color: white;">#003366</div>
+                                <p style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--glass-text-secondary);">主色调</p>
+                            </div>
+                            <div>
+                                <div class="color-swatch" style="background: #004080; color: white;">#004080</div>
+                                <p style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--glass-text-secondary);">次色调</p>
+                            </div>
+                            <div>
+                                <div class="color-swatch" style="background: #1e88e5; color: white;">#1e88e5</div>
+                                <p style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--glass-text-secondary);">强调色</p>
+                            </div>
+                            <div>
+                                <div class="color-swatch" style="background: rgba(255,255,255,0.15); color: var(--glass-text-primary); border: 1px solid var(--glass-border);">毛玻璃</div>
+                                <p style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--glass-text-secondary);">表面色</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 按钮组件 -->
+            <section class="test-section">
+                <h2 class="test-title">按钮组件</h2>
+                <div class="glass">
+                    <div style="padding: 20px;">
+                        <h3 style="margin-bottom: 12px; color: var(--glass-text-secondary);">主按钮</h3>
+                        <div class="test-row" style="margin-bottom: 24px;">
+                            <button class="glass-button">主要操作</button>
+                            <button class="glass-button" disabled>禁用状态</button>
+                        </div>
+                        
+                        <h3 style="margin-bottom: 12px; color: var(--glass-text-secondary);">次要按钮</h3>
+                        <div class="test-row" style="margin-bottom: 24px;">
+                            <button class="glass-button glass-button-secondary">取消</button>
+                            <button class="glass-button glass-button-secondary">查看详情</button>
+                        </div>
+                        
+                        <h3 style="margin-bottom: 12px; color: var(--glass-text-secondary);">危险按钮</h3>
+                        <div class="test-row">
+                            <button class="glass-button glass-button-danger">删除</button>
+                            <button class="glass-button glass-button-danger">移除</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 卡片组件 -->
+            <section class="test-section">
+                <h2 class="test-title">毛玻璃卡片</h2>
+                <div class="test-grid">
+                    <div class="glass-card demo-card">
+                        <div class="demo-card-icon">📁</div>
+                        <div class="demo-card-title">文件夹</div>
+                        <div class="demo-card-desc">存储和管理文件</div>
+                    </div>
+                    <div class="glass-card demo-card">
+                        <div class="demo-card-icon">📄</div>
+                        <div class="demo-card-title">文档</div>
+                        <div class="demo-card-desc">PDF、Word等文件</div>
+                    </div>
+                    <div class="glass-card demo-card">
+                        <div class="demo-card-icon">🖼️</div>
+                        <div class="demo-card-title">图片</div>
+                        <div class="demo-card-desc">JPG、PNG等格式</div>
+                    </div>
+                    <div class="glass-card demo-card">
+                        <div class="demo-card-icon">🎬</div>
+                        <div class="demo-card-title">视频</div>
+                        <div class="demo-card-desc">MP4、MKV等视频</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 表单输入 -->
+            <section class="test-section">
+                <h2 class="test-title">表单组件</h2>
+                <div class="glass" style="max-width: 500px;">
+                    <div style="padding: 20px;">
+                        <div class="glass-form-group">
+                            <label>用户名</label>
+                            <input type="text" class="glass-input" placeholder="请输入用户名">
+                        </div>
+                        <div class="glass-form-group">
+                            <label>密码</label>
+                            <input type="password" class="glass-input" placeholder="请输入密码">
+                        </div>
+                        <div class="glass-form-group">
+                            <label>搜索</label>
+                            <input type="text" class="glass-input" placeholder="搜索文件...">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 标签组件 -->
+            <section class="test-section">
+                <h2 class="test-title">标签组件</h2>
+                <div class="glass">
+                    <div style="padding: 20px;">
+                        <div class="test-row">
+                            <span class="glass-tag">默认标签</span>
+                            <span class="glass-tag glass-tag-primary">主要标签</span>
+                            <span class="glass-tag">文档</span>
+                            <span class="glass-tag">图片</span>
+                            <span class="glass-tag">视频</span>
+                            <span class="glass-tag">音频</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 主布局展示 -->
+            <section class="test-section">
+                <h2 class="test-title">完整布局展示</h2>
+                
+                <div class="glass-main-layout" style="padding: 0; margin-top: 16px;">
+                    <!-- 侧边栏 -->
+                    <aside class="glass-sidebar">
+                        <div class="glass glass-sidebar-nav">
+                            <a href="#" class="glass-sidebar-link active">
+                                <span class="icon">📁</span>
+                                <span class="text">所有文件</span>
+                            </a>
+                            <a href="#" class="glass-sidebar-link">
+                                <span class="icon">🕒</span>
+                                <span class="text">最近使用</span>
+                            </a>
+                            <a href="#" class="glass-sidebar-link">
+                                <span class="icon">🔗</span>
+                                <span class="text">我的分享</span>
+                            </a>
+                            <a href="#" class="glass-sidebar-link">
+                                <span class="icon">⭐</span>
+                                <span class="text">收藏夹</span>
+                            </a>
+                        </div>
+                        
+                        <div class="glass glass-sidebar-storage">
+                            <div class="glass-storage-label">存储空间</div>
+                            <div class="glass-storage-bar">
+                                <div class="glass-storage-used" style="width: 65%"></div>
+                            </div>
+                            <div class="glass-storage-text">6.5 GB / 10 GB</div>
+                        </div>
+                    </aside>
+
+                    <!-- 主内容 -->
+                    <main class="glass-main-content">
+                        <div class="glass-content-header">
+                            <div class="glass-breadcrumb">
+                                <a href="#">根目录</a>
+                                <span>/</span>
+                                <span>文档</span>
+                            </div>
+                            <div class="glass-content-actions">
+                                <button class="glass-button">📤 上传文件</button>
+                                <button class="glass-button glass-button-secondary">📁 新建文件夹</button>
+                            </div>
+                        </div>
+
+                        <div class="glass glass-toolbar">
+                            <div class="glass-search-box">
+                                <span>🔍</span>
+                                <input type="text" placeholder="搜索文件...">
+                            </div>
+                            <div class="glass-view-toggle">
+                                <button class="glass-view-btn active">▦</button>
+                                <button class="glass-view-btn">☰</button>
+                            </div>
+                        </div>
+
+                        <div class="glass glass-file-manager">
+                            <div class="glass-file-grid">
+                                <div class="glass-file-item">
+                                    <div class="glass-file-icon">📁</div>
+                                    <div class="glass-file-name">工作文件夹</div>
+                                </div>
+                                <div class="glass-file-item">
+                                    <div class="glass-file-icon">📁</div>
+                                    <div class="glass-file-name">个人文档</div>
+                                </div>
+                                <div class="glass-file-item">
+                                    <div class="glass-file-icon">📄</div>
+                                    <div class="glass-file-name">项目说明.pdf</div>
+                                    <div class="glass-file-size">2.4 MB</div>
+                                </div>
+                                <div class="glass-file-item">
+                                    <div class="glass-file-icon">🖼️</div>
+                                    <div class="glass-file-name">设计稿.png</div>
+                                    <div class="glass-file-size">5.8 MB</div>
+                                </div>
+                                <div class="glass-file-item">
+                                    <div class="glass-file-icon">🎬</div>
+                                    <div class="glass-file-name">演示视频.mp4</div>
+                                    <div class="glass-file-size">156 MB</div>
+                                </div>
+                                <div class="glass-file-item">
+                                    <div class="glass-file-icon">🐍</div>
+                                    <div class="glass-file-name">app.py</div>
+                                    <div class="glass-file-size">12 KB</div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </section>
+
+            <!-- 交互演示 -->
+            <section class="test-section">
+                <h2 class="test-title">交互演示</h2>
+                <div class="glass">
+                    <div style="padding: 20px;">
+                        <div class="test-row" style="margin-bottom: 16px;">
+                            <button class="glass-button" onclick="showModal('loginModal')">登录弹窗</button>
+                            <button class="glass-button" onclick="showModal('uploadModal')">上传弹窗</button>
+                            <button class="glass-button glass-button-secondary" onclick="showModal('confirmModal')">确认弹窗</button>
+                            <button class="glass-button" onclick="showToast('success')">成功提示</button>
+                            <button class="glass-button" onclick="showToast('error')">错误提示</button>
+                            <button class="glass-button glass-button-secondary" onclick="showToast('warning')">警告提示</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="glass-footer">
+            <p>© 2024 123云盘 UI测试页面 | 毛玻璃设计风格</p>
+        </footer>
+    </div>
+
+    <!-- 登录弹窗 -->
+    <div class="glass-modal" id="loginModal">
+        <div class="glass glass-modal-content">
+            <div class="glass-modal-header">
+                <h3>管理员登录</h3>
+                <button class="glass-modal-close" onclick="hideModal('loginModal')">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <div class="glass-form-group">
+                    <label>用户名</label>
+                    <input type="text" class="glass-input" placeholder="请输入用户名">
+                </div>
+                <div class="glass-form-group">
+                    <label>密码</label>
+                    <input type="password" class="glass-input" placeholder="请输入密码">
+                </div>
+                <button class="glass-button" style="width: 100%; justify-content: center;">登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传弹窗 -->
+    <div class="glass-modal" id="uploadModal">
+        <div class="glass glass-modal-content">
+            <div class="glass-modal-header">
+                <h3>上传文件</h3>
+                <button class="glass-modal-close" onclick="hideModal('uploadModal')">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <div class="glass-upload-area" id="uploadArea">
+                    <div class="glass-upload-icon">📤</div>
+                    <p class="glass-upload-text">拖拽文件到此处或点击选择文件</p>
+                </div>
+                <div style="margin-top: 16px;">
+                    <div class="glass-progress">
+                        <div class="glass-progress-bar" style="width: 60%"></div>
+                    </div>
+                    <p style="margin-top: 8px; font-size: 13px; color: var(--glass-text-muted);">上传进度: 60%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认弹窗 -->
+    <div class="glass-modal" id="confirmModal">
+        <div class="glass glass-modal-content glass-modal-sm">
+            <div class="glass-modal-header">
+                <h3>确认删除</h3>
+                <button class="glass-modal-close" onclick="hideModal('confirmModal')">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <p>确定要删除此文件吗？此操作无法撤销。</p>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" onclick="hideModal('confirmModal')">取消</button>
+                <button class="glass-button glass-button-danger" onclick="hideModal('confirmModal')">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast容器 -->
+    <div class="glass-toast-container" id="toastContainer"></div>
+
+    <script>
+        function showModal(id) {
+            document.getElementById(id).classList.add('show');
+        }
+
+        function hideModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        function showToast(type) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'glass glass-toast ' + type;
+            
+            const messages = {
+                success: '✓ 操作成功完成！',
+                error: '✗ 操作失败，请重试',
+                warning: '⚠ 请注意此操作'
+            };
+            
+            toast.textContent = messages[type];
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('glass-modal')) {
+                e.target.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -7,6 +7,7 @@ import time
 import uuid
 import requests
 
+SETTINGS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
 
 
 class Pan123:
@@ -123,7 +124,7 @@ class Pan123:
         return -1  # 所有重试失败后返回 -1
 
     def save_file(self):
-        with open("123pan.txt", "w", encoding="utf_8") as f:
+        with open(SETTINGS_PATH, "w", encoding="utf_8") as f:
             save_list = {
                 "userName": self.user_name,
                 "passWord": self.password,
@@ -400,11 +401,10 @@ class Pan123:
         else:
             print("退出分享")
 
-    def up_load(self, file_path, file_name=None):
+    def up_load(self, file_path):
         file_path = file_path.replace('"', "")
         file_path = file_path.replace("\\", "/")
-        if file_name is None:
-            file_name = file_path.split("/")[-1]
+        file_name = file_path.split("/")[-1]
         print("文件名:", file_name)
         if not os.path.exists(file_path):
             print("文件不存在，请检查路径是否正确")
@@ -652,7 +652,7 @@ class Pan123:
             authorization="",
     ):
         try:
-            with open("123pan.txt", "r", encoding="utf-8") as f:
+            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
                 text = f.read()
             text = json.loads(text)
             user_name = text["userName"]

@@ -34,6 +34,16 @@ const API = {
         
         try {
             const response = await fetch(`${this.baseUrl}${endpoint}`, options);
+            
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                if (response.status === 401) {
+                    this.clearToken();
+                    window.dispatchEvent(new CustomEvent('authRequired'));
+                }
+                return { code: response.status, message: `请求失败: ${response.status}`, data: null };
+            }
+            
             const result = await response.json();
             
             if (response.status === 401) {
@@ -123,8 +133,8 @@ const API = {
         return this.get('/auth/check');
     },
     
-    async listFiles(path = '/') {
-        const params = new URLSearchParams({ path });
+    async listFiles(path = '/', page = 1, pageSize = 50) {
+        const params = new URLSearchParams({ path, page, page_size: pageSize });
         return this.get(`/files?${params}`);
     },
     

@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理面板</title>
+    <link rel="stylesheet" href="/static/css/glassmorphism.css">
+    <style>
+        .glass-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0;
+        }
+        .glass-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--glass-text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s ease;
+        }
+        .glass-tab:hover {
+            color: var(--glass-text-primary);
+        }
+        .glass-tab.active {
+            color: var(--glass-primary);
+            border-bottom-color: var(--glass-primary);
+        }
+        .glass-tab-content {
+            display: none;
+        }
+        .glass-tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-app-container">
+        <header class="glass-header">
+            <div class="glass glass-header-content">
+                <a href="/" class="glass-logo">
+                    <div class="glass-logo-icon">☁️</div>
+                    <span class="glass-logo-text">个人网盘</span>
+                </a>
+                
+                <nav class="glass-nav">
+                    <a href="/" class="glass-nav-item">文件</a>
+                    <a href="/user-management" class="glass-nav-item active">管理面板</a>
+                </nav>
+                
+                <div class="glass-user-info">
+                    <span id="userDisplay" style="color: var(--glass-text-secondary); margin-right: 12px;">未登录</span>
+                    <button class="glass-button glass-button-secondary" style="padding: 6px 14px; font-size: 13px;" id="logoutBtn">退出</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="glass-main-layout">
+            <main class="glass-main-content" style="width: 100%; padding: 24px;">
+                <div class="glass-content-header">
+                    <h1 style="color: var(--glass-text-primary); margin: 0;">管理面板</h1>
+                </div>
+
+                <div class="glass-tabs">
+                    <button class="glass-tab active" data-tab="users">👥 用户管理</button>
+                    <button class="glass-tab" data-tab="permissions">🔐 权限管理</button>
+                    <button class="glass-tab" data-tab="path-permissions">📁 路径权限</button>
+                    <button class="glass-tab" data-tab="system">⚙️ 系统设置</button>
+                </div>
+
+                <div class="glass-tab-content active" id="users-tab">
+                    <div class="glass-content-header" style="margin-bottom: 16px;">
+                        <div class="glass-content-actions">
+                            <button class="glass-button" id="addUserBtn">
+                                <span>➕</span> 添加用户
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass glass-toolbar">
+                        <div class="glass-search-box">
+                            <span>🔍</span>
+                            <input type="text" placeholder="搜索用户..." id="searchInput">
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <label style="color: var(--glass-text-secondary); font-size: 14px;">用户类型:</label>
+                            <select class="glass-input" id="typeFilter" style="width: auto; padding: 8px 16px;">
+                                <option value="">全部</option>
+                                <option value="admin">管理员</option>
+                                <option value="user">普通用户</option>
+                                <option value="guest">游客</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="glass" style="overflow-x: auto;">
+                        <table class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>用户类型</th>
+                                    <th>角色</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="glass-pagination" id="pagination" style="margin-top: 20px;"></div>
+                </div>
+
+                <div class="glass-tab-content" id="permissions-tab">
+                    <div class="glass-content-header" style="margin-bottom: 16px;">
+                        <div class="glass-content-actions">
+                            <button class="glass-button" id="addRoleBtn">
+                                <span>➕</span> 添加角色
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass" style="padding: 0;">
+                        <div style="padding: 16px; border-bottom: 1px solid var(--glass-border);">
+                            <h3 style="margin: 0 0 16px 0; color: var(--glass-text-primary);">角色列表</h3>
+                        </div>
+                        <div id="rolesContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 16px;">
+                        </div>
+                    </div>
+
+                    <div class="glass" style="margin-top: 24px; padding: 0;">
+                        <div style="padding: 16px; border-bottom: 1px solid var(--glass-border);">
+                            <h3 style="margin: 0; color: var(--glass-text-primary);">所有权限</h3>
+                        </div>
+                        <div id="permissionsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; padding: 16px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-tab-content" id="path-permissions-tab">
+                    <div class="glass-content-header" style="margin-bottom: 16px;">
+                        <div class="glass-content-actions">
+                            <button class="glass-button" id="addPathPermBtn">
+                                <span>➕</span> 添加路径权限
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass glass-toolbar">
+                        <div class="glass-search-box">
+                            <span>🔍</span>
+                            <input type="text" placeholder="搜索路径..." id="pathSearchInput">
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <label style="color: var(--glass-text-secondary); font-size: 14px;">筛选:</label>
+                            <select class="glass-input" id="pathPermFilter" style="width: auto; padding: 8px 16px;">
+                                <option value="">全部</option>
+                                <option value="user">按用户</option>
+                                <option value="role">按角色</option>
+                            </select>
+                            <select class="glass-input" id="pathPermUserFilter" style="width: auto; padding: 8px 16px; display: none;">
+                                <option value="">选择用户</option>
+                            </select>
+                            <select class="glass-input" id="pathPermRoleFilter" style="width: auto; padding: 8px 16px; display: none;">
+                                <option value="">选择角色</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="glass" style="overflow-x: auto;">
+                        <table class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th>路径</th>
+                                    <th>权限类型</th>
+                                    <th>目标</th>
+                                    <th>状态</th>
+                                    <th>继承</th>
+                                    <th>优先级</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pathPermTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="glass-tab-content" id="system-tab">
+                    <div class="glass" style="padding: 24px; margin-bottom: 16px;">
+                        <h3 style="color: var(--glass-text-primary); margin: 0 0 24px 0;">123网盘API配置</h3>
+                        <div class="glass-form-group">
+                            <label>API用户名 <span style="color: #ef4444;">*</span></label>
+                            <input type="text" class="glass-input" id="sys123panUsername" placeholder="请输入123网盘账号">
+                        </div>
+                        <div class="glass-form-group">
+                            <label>API密码 <span style="color: #ef4444;">*</span></label>
+                            <input type="password" class="glass-input" id="sys123panPassword" placeholder="请输入123网盘密码">
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="glass-button" id="sysSave123panBtn">保存API配置</button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass" style="padding: 24px; margin-bottom: 16px;">
+                        <h3 style="color: var(--glass-text-primary); margin: 0 0 24px 0;">基础设置</h3>
+                        <div class="glass-form-group">
+                            <label>网站标题</label>
+                            <input type="text" class="glass-input" id="sysSiteTitle" data-config="site.title">
+                        </div>
+                        <div class="glass-form-group">
+                            <label>网站描述</label>
+                            <textarea class="glass-input" id="sysSiteDescription" data-config="site.description" rows="2"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="glass" style="padding: 24px; margin-bottom: 16px;">
+                        <h3 style="color: var(--glass-text-primary); margin: 0 0 24px 0;">主题设置</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="glass-form-group">
+                                <label>主色调</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="color" class="glass-input" id="sysPrimaryColor" style="width: 50px; padding: 4px;">
+                                    <input type="text" class="glass-input" id="sysPrimaryColorText" data-config="theme.primary_color">
+                                </div>
+                            </div>
+                            <div class="glass-form-group">
+                                <label>背景颜色</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="color" class="glass-input" id="sysBackgroundColor" style="width: 50px; padding: 4px;">
+                                    <input type="text" class="glass-input" id="sysBackgroundColorText" data-config="theme.background_color">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-form-group">
+                            <label>字体</label>
+                            <select class="glass-input" id="sysFontFamily" data-config="theme.font_family">
+                                <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">系统默认</option>
+                                <option value="'Microsoft YaHei', sans-serif">微软雅黑</option>
+                                <option value="'PingFang SC', sans-serif">苹方</option>
+                            </select>
+                        </div>
+                        <div class="glass-form-group">
+                            <label>预设主题</label>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="glass-button glass-button-sm" onclick="applyThemePreset('default')">默认蓝</button>
+                                <button class="glass-button glass-button-sm" onclick="applyThemePreset('green')">清新绿</button>
+                                <button class="glass-button glass-button-sm" onclick="applyThemePreset('purple')">优雅紫</button>
+                                <button class="glass-button glass-button-sm" onclick="applyThemePreset('dark')">深色模式</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass" style="padding: 24px; margin-bottom: 16px;">
+                        <h3 style="color: var(--glass-text-primary); margin: 0 0 24px 0;">上传设置</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="glass-form-group">
+                                <label>最大文件大小 (字节)</label>
+                                <input type="number" class="glass-input" id="sysMaxFileSize" data-config="upload.max_file_size">
+                            </div>
+                            <div class="glass-form-group">
+                                <label>最大并发数</label>
+                                <input type="number" class="glass-input" id="sysMaxConcurrent" data-config="upload.max_concurrent" min="1" max="10">
+                            </div>
+                        </div>
+                        <div class="glass-form-group">
+                            <label>允许的文件类型 (逗号分隔)</label>
+                            <input type="text" class="glass-input" id="sysAllowedTypes" data-config="upload.allowed_types">
+                        </div>
+                    </div>
+                    
+                    <div class="glass" style="padding: 24px; margin-bottom: 16px;">
+                        <h3 style="color: var(--glass-text-primary); margin: 0 0 24px 0;">功能开关</h3>
+                        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="sysEnableSearch" data-config="features.enable_search">
+                                <span>启用搜索</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="sysEnableShare" data-config="features.enable_share">
+                                <span>启用分享</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="sysEnablePreview" data-config="features.enable_preview">
+                                <span>启用预览</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="sysEnableDragDrop" data-config="features.enable_drag_drop">
+                                <span>启用拖拽上传</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="glass" style="padding: 24px; margin-bottom: 16px;">
+                        <h3 style="color: var(--glass-text-primary); margin: 0 0 24px 0;">备份恢复</h3>
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                            <button class="glass-button" id="sysCreateBackupBtn">创建备份</button>
+                            <button class="glass-button glass-button-secondary" id="sysRestoreDefaultBtn">恢复默认</button>
+                        </div>
+                        <div id="sysBackupList" style="max-height: 200px; overflow-y: auto;">
+                            <div style="color: var(--glass-text-secondary); text-align: center; padding: 20px;">加载中...</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button class="glass-button glass-button-secondary" id="sysResetBtn">重置更改</button>
+                        <button class="glass-button" id="sysSaveBtn">保存设置</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="userModal">
+        <div class="glass glass-modal-content">
+            <div class="glass-modal-header">
+                <h3 id="modalTitle">添加用户</h3>
+                <button class="glass-modal-close" id="closeUserModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <form id="userForm">
+                    <div class="glass-form-group">
+                        <label>用户名</label>
+                        <input type="text" class="glass-input" id="modalUsername" required>
+                    </div>
+                    <div class="glass-form-group" id="emailField">
+                        <label>邮箱 <span id="emailRequired" style="color: #ef4444;">*</span></label>
+                        <input type="email" class="glass-input" id="modalEmail">
+                        <small id="emailHint" style="color: var(--glass-text-secondary); display: none;">游客账户可不填，系统将自动生成</small>
+                    </div>
+                    <div class="glass-form-group" id="passwordField">
+                        <label>密码 <span id="passwordRequired" style="color: #ef4444;">*</span></label>
+                        <input type="password" class="glass-input" id="modalPassword">
+                        <small id="passwordHint" style="color: var(--glass-text-secondary); display: none;">游客账户无需设置密码</small>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>用户类型</label>
+                        <select class="glass-input" id="modalUserType">
+                            <option value="user">普通用户</option>
+                            <option value="admin">管理员</option>
+                            <option value="guest">游客</option>
+                        </select>
+                        <small style="color: var(--glass-text-secondary);">游客账户：无密码、自动关联未登录用户、全局唯一</small>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>角色</label>
+                        <select class="glass-input" id="modalRole" multiple>
+                        </select>
+                        <small style="color: var(--glass-text-secondary);">按住Ctrl多选</small>
+                    </div>
+                    <div class="glass-form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="modalActive" checked>
+                            <span>启用账户</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="cancelUserBtn">取消</button>
+                <button class="glass-button" id="saveUserBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="attributesModal">
+        <div class="glass glass-modal-content" style="max-width: 600px;">
+            <div class="glass-modal-header">
+                <h3>用户属性配置 - <span id="attributesUserName"></span></h3>
+                <button class="glass-modal-close" id="closeAttributesModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <form id="attributesForm">
+                    <h4 style="color: var(--glass-text-primary); margin-bottom: 16px;">存储配额</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="glass-form-group">
+                            <label>存储配额 (字节)</label>
+                            <input type="number" class="glass-input" id="attrStorageQuota" value="1073741824">
+                            <small style="color: var(--glass-text-secondary);">1GB = 1073741824</small>
+                        </div>
+                        <div class="glass-form-group">
+                            <label>已使用存储</label>
+                            <input type="number" class="glass-input" id="attrStorageUsed" value="0" readonly style="opacity: 0.7;">
+                        </div>
+                    </div>
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">文件限制</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="glass-form-group">
+                            <label>单文件最大大小 (字节)</label>
+                            <input type="number" class="glass-input" id="attrMaxFileSize" value="104857600">
+                            <small style="color: var(--glass-text-secondary);">100MB = 104857600</small>
+                        </div>
+                        <div class="glass-form-group">
+                            <label>每日上传限制</label>
+                            <input type="number" class="glass-input" id="attrMaxFilesPerDay" value="100">
+                        </div>
+                    </div>
+                    
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">上传设置</h4>
+                    <div class="glass-form-group">
+                        <label>上传速度限制 (KB/s, 0=不限)</label>
+                        <input type="number" class="glass-input" id="attrUploadSpeed" value="0">
+                    </div>
+                    
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">功能权限</h4>
+                    <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="attrCanShare" checked>
+                            <span>允许分享</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="attrCanDownload" checked>
+                            <span>允许下载</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="attrCanPreview" checked>
+                            <span>允许预览</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="cancelAttributesBtn">取消</button>
+                <button class="glass-button" id="saveAttributesBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="filePermissionModal">
+        <div class="glass glass-modal-content" style="max-width: 600px;">
+            <div class="glass-modal-header">
+                <h3>文件权限配置 - <span id="filePermUserName"></span></h3>
+                <button class="glass-modal-close" id="closeFilePermModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <form id="filePermissionForm">
+                    <h4 style="color: var(--glass-text-primary); margin-bottom: 16px;">文件类型限制</h4>
+                    <div class="glass-form-group">
+                        <label>允许的文件类型 (逗号分隔)</label>
+                        <input type="text" class="glass-input" id="fpAllowedTypes" placeholder="jpg,jpeg,png,gif,pdf">
+                        <small style="color: var(--glass-text-secondary);">留空表示允许所有类型</small>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>禁止的文件类型 (逗号分隔)</label>
+                        <input type="text" class="glass-input" id="fpBlockedTypes" placeholder="exe,bat,cmd">
+                        <small style="color: var(--glass-text-secondary);">禁止类型优先级高于允许类型</small>
+                    </div>
+                    
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">大小限制</h4>
+                    <div class="glass-form-group">
+                        <label>最大文件大小 (字节)</label>
+                        <input type="number" class="glass-input" id="fpMaxFileSize" value="104857600">
+                    </div>
+                    
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">目录层级限制</h4>
+                    <div class="glass-form-group">
+                        <label>最大目录深度 (0=不限制)</label>
+                        <input type="number" class="glass-input" id="fpMaxDepth" value="0" min="0">
+                        <small style="color: var(--glass-text-secondary);">限制用户可访问的目录层级深度，防止过深嵌套</small>
+                    </div>
+                    <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="fpShowHidden">
+                            <span>显示隐藏文件</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="fpAllowCreateFolder" checked>
+                            <span>允许创建文件夹</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="fpAllowDeleteFolder" checked>
+                            <span>允许删除文件夹</span>
+                        </label>
+                    </div>
+                    
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">可见路径设置</h4>
+                    <div class="glass-form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="fpRestrictToVisible">
+                            <span>启用可见路径限制</span>
+                        </label>
+                        <small style="color: var(--glass-text-secondary);">启用后用户只能看到下方指定的文件夹</small>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>可见文件夹路径 (逗号分隔)</label>
+                        <input type="text" class="glass-input" id="fpVisiblePaths" placeholder="/test,/documents">
+                        <small style="color: var(--glass-text-secondary);">例如: /test 表示用户只能看到test文件夹及其内容</small>
+                    </div>
+                    
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">路径限制</h4>
+                    <div class="glass-form-group">
+                        <label>允许的上传路径 (逗号分隔)</label>
+                        <input type="text" class="glass-input" id="fpAllowedPaths" placeholder="/documents,/images">
+                        <small style="color: var(--glass-text-secondary);">留空或 / 表示允许所有路径</small>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>禁止的上传路径 (逗号分隔)</label>
+                        <input type="text" class="glass-input" id="fpBlockedPaths" placeholder="/system,/admin">
+                    </div>
+                    
+                    <h4 style="color: var(--glass-text-primary); margin: 24px 0 16px;">上传设置</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="glass-form-group">
+                            <label>最大并发上传数</label>
+                            <input type="number" class="glass-input" id="fpMaxConcurrent" value="3">
+                        </div>
+                        <div class="glass-form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
+                                <input type="checkbox" id="fpRequireApproval">
+                                <span>上传需要审批</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>自动审批类型 (逗号分隔)</label>
+                        <input type="text" class="glass-input" id="fpAutoApproveTypes" placeholder="jpg,jpeg,png,gif,pdf">
+                    </div>
+                </form>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="cancelFilePermBtn">取消</button>
+                <button class="glass-button" id="saveFilePermBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="roleModal">
+        <div class="glass glass-modal-content" style="max-width: 600px;">
+            <div class="glass-modal-header">
+                <h3 id="roleModalTitle">添加角色</h3>
+                <button class="glass-modal-close" id="closeRoleModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <form id="roleForm">
+                    <div class="glass-form-group">
+                        <label>角色名称</label>
+                        <input type="text" class="glass-input" id="modalRoleName" required>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>描述</label>
+                        <textarea class="glass-input" id="modalRoleDescription" rows="3"></textarea>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>权限</label>
+                        <div id="permissionsCheckboxes" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 300px; overflow-y: auto;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="cancelRoleBtn">取消</button>
+                <button class="glass-button" id="saveRoleBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="pathPermModal">
+        <div class="glass glass-modal-content" style="max-width: 600px;">
+            <div class="glass-modal-header">
+                <h3 id="pathPermModalTitle">添加路径权限</h3>
+                <button class="glass-modal-close" id="closePathPermModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <form id="pathPermForm">
+                    <div class="glass-form-group">
+                        <label>路径 *</label>
+                        <input type="text" class="glass-input" id="ppPath" placeholder="/documents" required>
+                        <small style="color: var(--glass-text-secondary);">路径格式: /folder/subfolder</small>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>权限类型 *</label>
+                        <select class="glass-input" id="ppPermType" required>
+                            <option value="read">读取 (read)</option>
+                            <option value="write">写入 (write)</option>
+                            <option value="delete">删除 (delete)</option>
+                            <option value="share">分享 (share)</option>
+                            <option value="download">下载 (download)</option>
+                            <option value="admin">管理 (admin)</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="glass-form-group">
+                            <label>目标类型</label>
+                            <select class="glass-input" id="ppTargetType">
+                                <option value="user">用户</option>
+                                <option value="role">角色</option>
+                            </select>
+                        </div>
+                        <div class="glass-form-group">
+                            <label>目标</label>
+                            <select class="glass-input" id="ppTarget">
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="glass-form-group">
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="ppIsAllowed" checked>
+                                <span>允许访问</span>
+                            </label>
+                        </div>
+                        <div class="glass-form-group">
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="ppInherit" checked>
+                                <span>继承到子目录</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="glass-form-group">
+                        <label>优先级</label>
+                        <input type="number" class="glass-input" id="ppPriority" value="0" min="0">
+                        <small style="color: var(--glass-text-secondary);">数值越大优先级越高</small>
+                    </div>
+                </form>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="cancelPathPermBtn">取消</button>
+                <button class="glass-button" id="savePathPermBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-modal" id="confirmModal">
+        <div class="glass glass-modal-content glass-modal-sm">
+            <div class="glass-modal-header">
+                <h3>确认</h3>
+                <button class="glass-modal-close" id="closeConfirmModal">&times;</button>
+            </div>
+            <div class="glass-modal-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="glass-modal-footer">
+                <button class="glass-button glass-button-secondary" id="confirmCancel">取消</button>
+                <button class="glass-button glass-button-danger" id="confirmOk">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/state.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script>
+        let currentPage = 1;
+        let pageSize = 20;
+        let editingUserId = null;
+        let editingRoleId = null;
+        let allRoles = [];
+        let allPermissions = [];
+
+        document.querySelectorAll('.glass-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.glass-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.glass-tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+            });
+        });
+
+        async function checkAuth() {
+            try {
+                const result = await API.checkAuth();
+                if (result.code === 200 && result.data) {
+                    document.getElementById('userDisplay').textContent = result.data.username;
+                    return true;
+                } else {
+                    window.location.href = '/';
+                    return false;
+                }
+            } catch (e) {
+                window.location.href = '/';
+                return false;
+            }
+        }
+
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/roles', {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    allRoles = data.data.roles;
+                    updateRoleSelect();
+                    renderRoles();
+                }
+            } catch (e) {
+                console.error('加载角色失败:', e);
+            }
+        }
+
+        function updateRoleSelect() {
+            const select = document.getElementById('modalRole');
+            select.innerHTML = allRoles.map(role => 
+                `<option value="${role.name}">${role.name} - ${role.description || ''}</option>`
+            ).join('');
+        }
+
+        async function loadPermissions() {
+            try {
+                const response = await fetch('/api/permissions', {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    allPermissions = data.data.permissions;
+                    renderPermissions();
+                    updatePermissionsCheckboxes();
+                }
+            } catch (e) {
+                Utils.showToast('加载权限失败', 'error');
+            }
+        }
+
+        function renderPermissions() {
+            const container = document.getElementById('permissionsContainer');
+            container.innerHTML = allPermissions.map(perm => `
+                <div class="glass" style="padding: 12px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--glass-text-primary);">${Utils.escapeHtml(perm.name)}</div>
+                            <div style="font-size: 12px; color: var(--glass-text-secondary);">${Utils.escapeHtml(perm.description || '')}</div>
+                        </div>
+                        ${perm.module ? `<span class="glass-tag">${Utils.escapeHtml(perm.module)}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderRoles() {
+            const container = document.getElementById('rolesContainer');
+            container.innerHTML = allRoles.map(role => `
+                <div class="glass" style="padding: 16px;">
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px;">
+                        <div>
+                            <h4 style="margin: 0 0 4px 0; color: var(--glass-text-primary;">${Utils.escapeHtml(role.name)}</h4>
+                            <p style="margin: 0; font-size: 13px; color: var(--glass-text-secondary);">${Utils.escapeHtml(role.description || '')}</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="glass-button glass-button-sm" onclick="editRole(${role.id})">编辑</button>
+                            ${!['admin', 'user', 'guest'].includes(role.name) ? `
+                                <button class="glass-button glass-button-sm glass-button-danger" onclick="deleteRole(${role.id})">删除</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${role.permissions.map(p => `<span class="glass-tag">${Utils.escapeHtml(p)}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePermissionsCheckboxes(selectedPermissions = []) {
+            const container = document.getElementById('permissionsCheckboxes');
+            container.innerHTML = allPermissions.map(perm => `
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px;">
+                    <input type="checkbox" value="${perm.name}" ${selectedPermissions.includes(perm.name) ? 'checked' : ''}>
+                    <span style="font-size: 13px;">${Utils.escapeHtml(perm.name)}</span>
+                </label>
+            `).join('');
+        }
+
+        function addRole() {
+            editingRoleId = null;
+            document.getElementById('roleModalTitle').textContent = '添加角色';
+            document.getElementById('roleForm').reset();
+            updatePermissionsCheckboxes();
+            document.getElementById('roleModal').classList.add('show');
+        }
+
+        function editRole(roleId) {
+            const role = allRoles.find(r => r.id === roleId);
+            if (!role) return;
+
+            editingRoleId = roleId;
+            document.getElementById('roleModalTitle').textContent = '编辑角色';
+            document.getElementById('modalRoleName').value = role.name;
+            document.getElementById('modalRoleDescription').value = role.description || '';
+            updatePermissionsCheckboxes(role.permissions);
+            document.getElementById('roleModal').classList.add('show');
+        }
+
+        async function saveRole() {
+            const name = document.getElementById('modalRoleName').value.trim();
+            const description = document.getElementById('modalRoleDescription').value.trim();
+            const permissions = Array.from(document.querySelectorAll('#permissionsCheckboxes input:checked')).map(cb => cb.value);
+
+            if (!name) {
+                Utils.showToast('请输入角色名称', 'error');
+                return;
+            }
+
+            try {
+                const url = editingRoleId ? `/api/roles/${editingRoleId}` : '/api/roles';
+                const method = editingRoleId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API.token}`
+                    },
+                    body: JSON.stringify({ name, description, permissions })
+                });
+
+                const data = await response.json();
+                if (data.code === 200) {
+                    Utils.showToast(editingRoleId ? '角色更新成功' : '角色创建成功', 'success');
+                    document.getElementById('roleModal').classList.remove('show');
+                    await loadRoles();
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (e) {
+                Utils.showToast(e.message || '操作失败', 'error');
+            }
+        }
+
+        function deleteRole(roleId) {
+            showConfirm('确定要删除此角色吗？', async () => {
+                try {
+                    const response = await fetch(`/api/roles/${roleId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${API.token}` }
+                    });
+                    const data = await response.json();
+                    if (data.code === 200) {
+                        Utils.showToast('角色删除成功', 'success');
+                        await loadRoles();
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (e) {
+                    Utils.showToast(e.message || '删除失败', 'error');
+                }
+            });
+        }
+
+        async function loadUsers() {
+            try {
+                const typeFilter = document.getElementById('typeFilter').value;
+                let url = `/api/users?page=${currentPage}&page_size=${pageSize}`;
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    let users = data.data.users;
+                    if (typeFilter) {
+                        users = users.filter(u => u.user_type === typeFilter);
+                    }
+                    renderUsers(users);
+                    renderPagination(data.data.total);
+                }
+            } catch (e) {
+                Utils.showToast('加载用户失败', 'error');
+            }
+        }
+
+        function getUserTypeLabel(userType) {
+            const types = {
+                'admin': '<span class="glass-tag glass-tag-primary">管理员</span>',
+                'user': '<span class="glass-tag">普通用户</span>',
+                'guest': '<span class="glass-tag glass-tag-warning">游客</span>'
+            };
+            return types[userType] || '<span class="glass-tag">未知</span>';
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${Utils.escapeHtml(user.username)}</td>
+                    <td>${Utils.escapeHtml(user.email)}</td>
+                    <td>${getUserTypeLabel(user.user_type)}</td>
+                    <td>${user.roles.map(r => `<span class="glass-tag">${r}</span>`).join(' ')}</td>
+                    <td>
+                        <span class="glass-tag ${user.is_active ? 'glass-tag-success' : 'glass-tag-danger'}">
+                            ${user.is_active ? '启用' : '禁用'}
+                        </span>
+                    </td>
+                    <td>${new Date(user.created_at).toLocaleString('zh-CN')}</td>
+                    <td>
+                        <button class="glass-button glass-button-sm" onclick="editUser(${user.id})" title="编辑">✏️</button>
+                        <button class="glass-button glass-button-sm" onclick="editAttributes(${user.id}, '${Utils.escapeHtml(user.username)}')" title="属性配置">⚙️</button>
+                        <button class="glass-button glass-button-sm" onclick="editFilePermission(${user.id}, '${Utils.escapeHtml(user.username)}')" title="文件权限">📁</button>
+                        <button class="glass-button glass-button-sm glass-button-danger" onclick="deleteUser(${user.id})" title="删除">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPagination(total) {
+            const totalPages = Math.ceil(total / pageSize);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '<span style="color: var(--glass-text-secondary);">共 ' + total + ' 条</span>';
+                return;
+            }
+            
+            let html = '<span style="color: var(--glass-text-secondary);">共 ' + total + ' 条</span>';
+            
+            if (currentPage > 1) {
+                html += `<button class="glass-button glass-button-sm" onclick="changePage(${currentPage - 1})">上一页</button>`;
+            }
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    html += `<button class="glass-button glass-button-sm" style="background: var(--glass-primary); color: white;" disabled>${i}</button>`;
+                } else if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<button class="glass-button glass-button-sm" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += '<span style="padding: 0 8px;">...</span>';
+                }
+            }
+            
+            if (currentPage < totalPages) {
+                html += `<button class="glass-button glass-button-sm" onclick="changePage(${currentPage + 1})">下一页</button>`;
+            }
+            
+            pagination.innerHTML = html;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            loadUsers();
+        }
+
+        function toggleGuestFields(isGuest) {
+            const passwordField = document.getElementById('passwordField');
+            const passwordRequired = document.getElementById('passwordRequired');
+            const passwordHint = document.getElementById('passwordHint');
+            const emailRequired = document.getElementById('emailRequired');
+            const emailHint = document.getElementById('emailHint');
+            
+            if (isGuest) {
+                passwordField.style.display = 'none';
+                passwordRequired.style.display = 'none';
+                passwordHint.style.display = 'block';
+                emailRequired.style.display = 'none';
+                emailHint.style.display = 'block';
+            } else {
+                passwordField.style.display = 'block';
+                passwordRequired.style.display = 'inline';
+                passwordHint.style.display = 'none';
+                emailRequired.style.display = 'inline';
+                emailHint.style.display = 'none';
+            }
+        }
+
+        function addUser() {
+            editingUserId = null;
+            document.getElementById('modalTitle').textContent = '添加用户';
+            document.getElementById('userForm').reset();
+            document.getElementById('modalUserType').value = 'user';
+            document.getElementById('modalActive').checked = true;
+            toggleGuestFields(false);
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        async function editUser(userId) {
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    editingUserId = userId;
+                    const user = data.data;
+                    document.getElementById('modalTitle').textContent = '编辑用户';
+                    document.getElementById('modalUsername').value = user.username;
+                    document.getElementById('modalEmail').value = user.email;
+                    document.getElementById('modalUserType').value = user.user_type || 'user';
+                    toggleGuestFields(user.user_type === 'guest');
+                    document.getElementById('modalActive').checked = user.is_active;
+                    
+                    const roleSelect = document.getElementById('modalRole');
+                    Array.from(roleSelect.options).forEach(opt => {
+                        opt.selected = user.roles.includes(opt.value);
+                    });
+                    
+                    document.getElementById('userModal').classList.add('show');
+                }
+            } catch (e) {
+                Utils.showToast('加载用户信息失败', 'error');
+            }
+        }
+
+        async function saveUser() {
+            const username = document.getElementById('modalUsername').value.trim();
+            const email = document.getElementById('modalEmail').value.trim();
+            const password = document.getElementById('modalPassword').value;
+            const userType = document.getElementById('modalUserType').value;
+            const roles = Array.from(document.getElementById('modalRole').selectedOptions).map(o => o.value);
+            const is_active = document.getElementById('modalActive').checked;
+            
+            const isGuest = userType === 'guest';
+
+            if (!isGuest && !editingUserId) {
+                if (!username || !email || !password) {
+                    Utils.showToast('请填写用户名、邮箱和密码', 'error');
+                    return;
+                }
+            } else if (isGuest && !editingUserId) {
+                if (!username) {
+                    Utils.showToast('请填写用户名', 'error');
+                    return;
+                }
+            }
+
+            try {
+                if (editingUserId) {
+                    const response = await fetch(`/api/users/${editingUserId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API.token}`
+                        },
+                        body: JSON.stringify({ username, email, roles, is_active })
+                    });
+                    const data = await response.json();
+                    if (data.code !== 200) throw new Error(data.message);
+                    
+                    await fetch(`/api/users/${editingUserId}/type`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API.token}`
+                        },
+                        body: JSON.stringify({ user_type: userType })
+                    });
+                    
+                    Utils.showToast('用户更新成功', 'success');
+                } else {
+                    const response = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API.token}`
+                        },
+                        body: JSON.stringify({ username, email, password, user_type: userType, roles })
+                    });
+                    const data = await response.json();
+                    if (data.code !== 200) throw new Error(data.message);
+                    
+                    Utils.showToast('用户创建成功', 'success');
+                }
+                
+                document.getElementById('userModal').classList.remove('show');
+                loadUsers();
+            } catch (e) {
+                Utils.showToast(e.message || '操作失败', 'error');
+            }
+        }
+
+        async function editAttributes(userId, username) {
+            editingUserId = userId;
+            document.getElementById('attributesUserName').textContent = username;
+            
+            try {
+                const response = await fetch(`/api/users/${userId}/attributes`, {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    const attrs = data.data;
+                    document.getElementById('attrStorageQuota').value = attrs.storage_quota || 1073741824;
+                    document.getElementById('attrStorageUsed').value = attrs.storage_used || 0;
+                    document.getElementById('attrUploadSpeed').value = attrs.upload_speed_limit || 0;
+                    document.getElementById('attrMaxFileSize').value = attrs.max_file_size || 104857600;
+                    document.getElementById('attrMaxFilesPerDay').value = attrs.max_files_per_day || 100;
+                    document.getElementById('attrCanShare').checked = attrs.can_share !== false;
+                    document.getElementById('attrCanDownload').checked = attrs.can_download !== false;
+                    document.getElementById('attrCanPreview').checked = attrs.can_preview !== false;
+                }
+            } catch (e) {
+                console.error('加载属性失败:', e);
+            }
+            
+            document.getElementById('attributesModal').classList.add('show');
+        }
+
+        async function saveAttributes() {
+            const attributes = {
+                storage_quota: parseInt(document.getElementById('attrStorageQuota').value),
+                upload_speed_limit: parseInt(document.getElementById('attrUploadSpeed').value),
+                max_file_size: parseInt(document.getElementById('attrMaxFileSize').value),
+                max_files_per_day: parseInt(document.getElementById('attrMaxFilesPerDay').value),
+                can_share: document.getElementById('attrCanShare').checked,
+                can_download: document.getElementById('attrCanDownload').checked,
+                can_preview: document.getElementById('attrCanPreview').checked
+            };
+            
+            try {
+                const response = await fetch(`/api/users/${editingUserId}/attributes`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API.token}`
+                    },
+                    body: JSON.stringify(attributes)
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    Utils.showToast('属性配置保存成功', 'success');
+                    document.getElementById('attributesModal').classList.remove('show');
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (e) {
+                Utils.showToast(e.message || '保存失败', 'error');
+            }
+        }
+
+        async function editFilePermission(userId, username) {
+            editingUserId = userId;
+            document.getElementById('filePermUserName').textContent = username;
+            
+            try {
+                const response = await fetch(`/api/users/${userId}/file-permission`, {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    const fp = data.data;
+                    document.getElementById('fpAllowedTypes').value = (fp.allowed_types || []).join(',');
+                    document.getElementById('fpBlockedTypes').value = (fp.blocked_types || []).join(',');
+                    document.getElementById('fpMaxFileSize').value = fp.max_file_size || 104857600;
+                    document.getElementById('fpMaxDepth').value = fp.max_directory_depth || 0;
+                    document.getElementById('fpShowHidden').checked = fp.show_hidden_files || false;
+                    document.getElementById('fpAllowCreateFolder').checked = fp.allow_create_folder !== false;
+                    document.getElementById('fpAllowDeleteFolder').checked = fp.allow_delete_folder !== false;
+                    document.getElementById('fpRestrictToVisible').checked = fp.restrict_to_visible || false;
+                    document.getElementById('fpVisiblePaths').value = (fp.visible_paths || ['/']).join(',');
+                    document.getElementById('fpAllowedPaths').value = (fp.allowed_paths || []).join(',');
+                    document.getElementById('fpBlockedPaths').value = (fp.blocked_paths || []).join(',');
+                    document.getElementById('fpRequireApproval').checked = fp.require_approval || false;
+                    document.getElementById('fpAutoApproveTypes').value = (fp.auto_approve_types || []).join(',');
+                    document.getElementById('fpMaxConcurrent').value = fp.max_concurrent_uploads || 3;
+                }
+            } catch (e) {
+                console.error('加载文件权限失败:', e);
+            }
+            
+            document.getElementById('filePermissionModal').classList.add('show');
+        }
+
+        async function saveFilePermission() {
+            const permission = {
+                allowed_types: document.getElementById('fpAllowedTypes').value.split(',').filter(t => t.trim()),
+                blocked_types: document.getElementById('fpBlockedTypes').value.split(',').filter(t => t.trim()),
+                max_file_size: parseInt(document.getElementById('fpMaxFileSize').value),
+                max_directory_depth: parseInt(document.getElementById('fpMaxDepth').value) || 0,
+                show_hidden_files: document.getElementById('fpShowHidden').checked,
+                allow_create_folder: document.getElementById('fpAllowCreateFolder').checked,
+                allow_delete_folder: document.getElementById('fpAllowDeleteFolder').checked,
+                restrict_to_visible: document.getElementById('fpRestrictToVisible').checked,
+                visible_paths: document.getElementById('fpVisiblePaths').value.split(',').filter(p => p.trim()),
+                allowed_paths: document.getElementById('fpAllowedPaths').value.split(',').filter(p => p.trim()),
+                blocked_paths: document.getElementById('fpBlockedPaths').value.split(',').filter(p => p.trim()),
+                require_approval: document.getElementById('fpRequireApproval').checked,
+                auto_approve_types: document.getElementById('fpAutoApproveTypes').value.split(',').filter(t => t.trim()),
+                max_concurrent_uploads: parseInt(document.getElementById('fpMaxConcurrent').value)
+            };
+            
+            try {
+                const response = await fetch(`/api/users/${editingUserId}/file-permission`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API.token}`
+                    },
+                    body: JSON.stringify(permission)
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    Utils.showToast('文件权限配置保存成功', 'success');
+                    document.getElementById('filePermissionModal').classList.remove('show');
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (e) {
+                Utils.showToast(e.message || '保存失败', 'error');
+            }
+        }
+
+        function deleteUser(userId) {
+            showConfirm('确定要删除此用户吗？', async () => {
+                try {
+                    const response = await fetch(`/api/users/${userId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${API.token}` }
+                    });
+                    const data = await response.json();
+                    if (data.code === 200) {
+                        Utils.showToast('用户删除成功', 'success');
+                        loadUsers();
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (e) {
+                    Utils.showToast(e.message || '删除失败', 'error');
+                }
+            });
+        }
+
+        function showConfirm(message, onConfirm) {
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').classList.add('show');
+            
+            const okBtn = document.getElementById('confirmOk');
+            const cancelBtn = document.getElementById('confirmCancel');
+            const closeBtn = document.getElementById('closeConfirmModal');
+            
+            const handler = async () => {
+                okBtn.removeEventListener('click', handler);
+                cancelBtn.removeEventListener('click', closeHandler);
+                closeBtn.removeEventListener('click', closeHandler);
+                document.getElementById('confirmModal').classList.remove('show');
+                await onConfirm();
+            };
+            
+            const closeHandler = () => {
+                okBtn.removeEventListener('click', handler);
+                cancelBtn.removeEventListener('click', closeHandler);
+                closeBtn.removeEventListener('click', closeHandler);
+                document.getElementById('confirmModal').classList.remove('show');
+            };
+            
+            okBtn.addEventListener('click', handler);
+            cancelBtn.addEventListener('click', closeHandler);
+            closeBtn.addEventListener('click', closeHandler);
+        }
+
+        function initEventListeners() {
+            document.getElementById('addUserBtn').addEventListener('click', addUser);
+            document.getElementById('saveUserBtn').addEventListener('click', saveUser);
+            document.getElementById('cancelUserBtn').addEventListener('click', () => {
+                document.getElementById('userModal').classList.remove('show');
+            });
+            document.getElementById('closeUserModal').addEventListener('click', () => {
+                document.getElementById('userModal').classList.remove('show');
+            });
+            
+            document.getElementById('modalUserType').addEventListener('change', (e) => {
+                toggleGuestFields(e.target.value === 'guest');
+            });
+
+            document.getElementById('saveAttributesBtn').addEventListener('click', saveAttributes);
+            document.getElementById('cancelAttributesBtn').addEventListener('click', () => {
+                document.getElementById('attributesModal').classList.remove('show');
+            });
+            document.getElementById('closeAttributesModal').addEventListener('click', () => {
+                document.getElementById('attributesModal').classList.remove('show');
+            });
+
+            document.getElementById('saveFilePermBtn').addEventListener('click', saveFilePermission);
+            document.getElementById('cancelFilePermBtn').addEventListener('click', () => {
+                document.getElementById('filePermissionModal').classList.remove('show');
+            });
+            document.getElementById('closeFilePermModal').addEventListener('click', () => {
+                document.getElementById('filePermissionModal').classList.remove('show');
+            });
+
+            document.getElementById('addRoleBtn').addEventListener('click', addRole);
+            document.getElementById('saveRoleBtn').addEventListener('click', saveRole);
+            document.getElementById('cancelRoleBtn').addEventListener('click', () => {
+                document.getElementById('roleModal').classList.remove('show');
+            });
+            document.getElementById('closeRoleModal').addEventListener('click', () => {
+                document.getElementById('roleModal').classList.remove('show');
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                API.logout();
+                window.location.href = '/';
+            });
+
+            document.getElementById('typeFilter').addEventListener('change', () => {
+                currentPage = 1;
+                loadUsers();
+            });
+
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentPage = 1;
+                    loadUsers();
+                }, 300);
+            });
+
+            document.getElementById('sysSaveBtn').addEventListener('click', saveSystemConfig);
+            document.getElementById('sysSave123panBtn').addEventListener('click', save123panConfig);
+            document.getElementById('sysResetBtn').addEventListener('click', () => populateSystemSettings(systemConfig));
+            document.getElementById('sysCreateBackupBtn').addEventListener('click', createBackup);
+            document.getElementById('sysRestoreDefaultBtn').addEventListener('click', async () => {
+                if (confirm('确定要恢复默认设置吗？')) {
+                    const result = await API.updateConfig({
+                        site: { title: '个人网盘', description: '' },
+                        theme: { primary_color: '#4F46E5', background_color: '#f0f4f8', font_family: '' },
+                        upload: { max_file_size: 2147483648, max_concurrent: 3, allowed_types: '' },
+                        features: { enable_search: true, enable_share: true, enable_preview: true, enable_drag_drop: true }
+                    });
+                    if (result.code === 200) {
+                        Utils.showToast('已恢复默认设置', 'success');
+                        loadSystemConfig();
+                    }
+                }
+            });
+            
+            document.getElementById('sysPrimaryColor').addEventListener('input', (e) => {
+                document.getElementById('sysPrimaryColorText').value = e.target.value;
+            });
+            document.getElementById('sysBackgroundColor').addEventListener('input', (e) => {
+                document.getElementById('sysBackgroundColorText').value = e.target.value;
+            });
+            
+            document.getElementById('addPathPermBtn').addEventListener('click', addPathPermission);
+            document.getElementById('savePathPermBtn').addEventListener('click', savePathPermission);
+            document.getElementById('cancelPathPermBtn').addEventListener('click', () => {
+                document.getElementById('pathPermModal').classList.remove('show');
+            });
+            document.getElementById('closePathPermModal').addEventListener('click', () => {
+                document.getElementById('pathPermModal').classList.remove('show');
+            });
+            
+            document.getElementById('ppTargetType').addEventListener('change', updateTargetSelect);
+            document.getElementById('pathPermFilter').addEventListener('change', handlePathPermFilterChange);
+            document.getElementById('pathPermUserFilter').addEventListener('change', loadPathPermissions);
+            document.getElementById('pathPermRoleFilter').addEventListener('change', loadPathPermissions);
+            
+            let pathSearchTimeout;
+            document.getElementById('pathSearchInput').addEventListener('input', () => {
+                clearTimeout(pathSearchTimeout);
+                pathSearchTimeout = setTimeout(loadPathPermissions, 300);
+            });
+        }
+
+        let editingPathPermId = null;
+        let allUsers = [];
+
+        async function loadAllUsers() {
+            try {
+                const response = await fetch('/api/users?page=1&page_size=1000', {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                if (data.code === 200) {
+                    allUsers = data.data.users;
+                    updateUserSelects();
+                }
+            } catch (e) {
+                console.error('加载用户列表失败:', e);
+            }
+        }
+
+        function updateUserSelects() {
+            const userFilterSelect = document.getElementById('pathPermUserFilter');
+            const targetSelect = document.getElementById('ppTarget');
+            
+            userFilterSelect.innerHTML = '<option value="">选择用户</option>' + 
+                allUsers.map(u => `<option value="${u.id}">${Utils.escapeHtml(u.username)}</option>`).join('');
+        }
+
+        function updateTargetSelect() {
+            const targetType = document.getElementById('ppTargetType').value;
+            const targetSelect = document.getElementById('ppTarget');
+            
+            if (targetType === 'user') {
+                targetSelect.innerHTML = allUsers.map(u => 
+                    `<option value="${u.id}">${Utils.escapeHtml(u.username)}</option>`
+                ).join('');
+            } else {
+                targetSelect.innerHTML = allRoles.map(r => 
+                    `<option value="${r.id}">${Utils.escapeHtml(r.name)}</option>`
+                ).join('');
+            }
+        }
+
+        function handlePathPermFilterChange() {
+            const filter = document.getElementById('pathPermFilter').value;
+            document.getElementById('pathPermUserFilter').style.display = filter === 'user' ? 'block' : 'none';
+            document.getElementById('pathPermRoleFilter').style.display = filter === 'role' ? 'block' : 'none';
+            loadPathPermissions();
+        }
+
+        async function loadPathPermissions() {
+            try {
+                const filter = document.getElementById('pathPermFilter').value;
+                let url = '/api/path-permissions?';
+                
+                if (filter === 'user') {
+                    const userId = document.getElementById('pathPermUserFilter').value;
+                    if (userId) url += `user_id=${userId}&`;
+                } else if (filter === 'role') {
+                    const roleId = document.getElementById('pathPermRoleFilter').value;
+                    if (roleId) url += `role_id=${roleId}&`;
+                }
+                
+                const pathSearch = document.getElementById('pathSearchInput').value;
+                if (pathSearch) url += `path=${encodeURIComponent(pathSearch)}&`;
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                
+                if (data.code === 200) {
+                    renderPathPermissions(data.data.permissions);
+                }
+            } catch (e) {
+                console.error('加载路径权限失败:', e);
+            }
+        }
+
+        function renderPathPermissions(permissions) {
+            const tbody = document.getElementById('pathPermTableBody');
+            
+            if (permissions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--glass-text-secondary);">暂无路径权限</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = permissions.map(perm => {
+                let targetName = '-';
+                if (perm.user_id) {
+                    const user = allUsers.find(u => u.id === perm.user_id);
+                    targetName = user ? `用户: ${Utils.escapeHtml(user.username)}` : `用户ID: ${perm.user_id}`;
+                } else if (perm.role_id) {
+                    const role = allRoles.find(r => r.id === perm.role_id);
+                    targetName = role ? `角色: ${Utils.escapeHtml(role.name)}` : `角色ID: ${perm.role_id}`;
+                }
+                
+                const permTypeLabels = {
+                    'read': '<span class="glass-tag">读取</span>',
+                    'write': '<span class="glass-tag glass-tag-primary">写入</span>',
+                    'delete': '<span class="glass-tag glass-tag-danger">删除</span>',
+                    'share': '<span class="glass-tag glass-tag-warning">分享</span>',
+                    'download': '<span class="glass-tag">下载</span>',
+                    'admin': '<span class="glass-tag glass-tag-primary">管理</span>'
+                };
+                
+                return `
+                    <tr>
+                        <td><code style="background: var(--glass-bg); padding: 2px 6px; border-radius: 4px;">${Utils.escapeHtml(perm.path)}</code></td>
+                        <td>${permTypeLabels[perm.permission_type] || perm.permission_type}</td>
+                        <td>${targetName}</td>
+                        <td>
+                            <span class="glass-tag ${perm.is_allowed ? 'glass-tag-success' : 'glass-tag-danger'}">
+                                ${perm.is_allowed ? '允许' : '拒绝'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="glass-tag ${perm.inherit ? 'glass-tag-primary' : ''}">
+                                ${perm.inherit ? '是' : '否'}
+                            </span>
+                        </td>
+                        <td>${perm.priority}</td>
+                        <td>
+                            <button class="glass-button glass-button-sm" onclick="editPathPermission(${perm.id})">编辑</button>
+                            <button class="glass-button glass-button-sm glass-button-danger" onclick="deletePathPermission(${perm.id})">删除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function addPathPermission() {
+            editingPathPermId = null;
+            document.getElementById('pathPermModalTitle').textContent = '添加路径权限';
+            document.getElementById('pathPermForm').reset();
+            document.getElementById('ppIsAllowed').checked = true;
+            document.getElementById('ppInherit').checked = true;
+            document.getElementById('ppPriority').value = 0;
+            updateTargetSelect();
+            document.getElementById('pathPermModal').classList.add('show');
+        }
+
+        async function editPathPermission(permId) {
+            try {
+                const response = await fetch(`/api/path-permissions`, {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const data = await response.json();
+                
+                if (data.code === 200) {
+                    const perm = data.data.permissions.find(p => p.id === permId);
+                    if (!perm) return;
+                    
+                    editingPathPermId = permId;
+                    document.getElementById('pathPermModalTitle').textContent = '编辑路径权限';
+                    document.getElementById('ppPath').value = perm.path;
+                    document.getElementById('ppPermType').value = perm.permission_type;
+                    document.getElementById('ppIsAllowed').checked = perm.is_allowed;
+                    document.getElementById('ppInherit').checked = perm.inherit;
+                    document.getElementById('ppPriority').value = perm.priority;
+                    
+                    if (perm.user_id) {
+                        document.getElementById('ppTargetType').value = 'user';
+                        updateTargetSelect();
+                        document.getElementById('ppTarget').value = perm.user_id;
+                    } else if (perm.role_id) {
+                        document.getElementById('ppTargetType').value = 'role';
+                        updateTargetSelect();
+                        document.getElementById('ppTarget').value = perm.role_id;
+                    }
+                    
+                    document.getElementById('pathPermModal').classList.add('show');
+                }
+            } catch (e) {
+                console.error('加载路径权限详情失败:', e);
+            }
+        }
+
+        async function savePathPermission() {
+            const path = document.getElementById('ppPath').value.trim();
+            const permissionType = document.getElementById('ppPermType').value;
+            const targetType = document.getElementById('ppTargetType').value;
+            const targetId = document.getElementById('ppTarget').value;
+            const isAllowed = document.getElementById('ppIsAllowed').checked;
+            const inherit = document.getElementById('ppInherit').checked;
+            const priority = parseInt(document.getElementById('ppPriority').value) || 0;
+            
+            if (!path) {
+                Utils.showToast('请输入路径', 'error');
+                return;
+            }
+            
+            const data = {
+                path,
+                permission_type: permissionType,
+                is_allowed: isAllowed,
+                inherit,
+                priority
+            };
+            
+            if (targetType === 'user') {
+                data.user_id = parseInt(targetId);
+            } else {
+                data.role_id = parseInt(targetId);
+            }
+            
+            try {
+                const url = editingPathPermId ? `/api/path-permissions/${editingPathPermId}` : '/api/path-permissions';
+                const method = editingPathPermId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API.token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    Utils.showToast(editingPathPermId ? '路径权限更新成功' : '路径权限创建成功', 'success');
+                    document.getElementById('pathPermModal').classList.remove('show');
+                    loadPathPermissions();
+                } else {
+                    Utils.showToast(result.message || '操作失败', 'error');
+                }
+            } catch (e) {
+                Utils.showToast('操作失败', 'error');
+            }
+        }
+
+        function deletePathPermission(permId) {
+            showConfirm('确定要删除此路径权限吗？', async () => {
+                try {
+                    const response = await fetch(`/api/path-permissions/${permId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${API.token}` }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.code === 200) {
+                        Utils.showToast('路径权限删除成功', 'success');
+                        loadPathPermissions();
+                    } else {
+                        Utils.showToast(data.message || '删除失败', 'error');
+                    }
+                } catch (e) {
+                    Utils.showToast('删除失败', 'error');
+                }
+            });
+        }
+
+        let systemConfig = {};
+
+        async function loadSystemConfig() {
+            try {
+                const result = await API.getConfig();
+                if (result.code === 200 && result.data) {
+                    systemConfig = result.data;
+                    populateSystemSettings(result.data);
+                }
+            } catch (e) {
+                console.error('加载系统配置失败:', e);
+            }
+        }
+
+        async function load123panConfig() {
+            try {
+                const response = await fetch('/api/config/123pan', {
+                    headers: { 'Authorization': `Bearer ${API.token}` }
+                });
+                const result = await response.json();
+                if (result.code === 200 && result.data) {
+                    document.getElementById('sys123panUsername').value = result.data.username || '';
+                    document.getElementById('sys123panPassword').value = '';
+                    document.getElementById('sys123panPassword').placeholder = result.data.password ? '已设置，留空则保持不变' : '请输入123网盘密码';
+                }
+            } catch (e) {
+                console.error('加载123网盘配置失败:', e);
+            }
+        }
+
+        async function save123panConfig() {
+            const username = document.getElementById('sys123panUsername').value.trim();
+            const password = document.getElementById('sys123panPassword').value;
+            
+            if (!username) {
+                Utils.showToast('请输入API用户名', 'error');
+                return;
+            }
+            
+            if (!password) {
+                Utils.showToast('请输入API密码', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/config/123pan', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API.token}`
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const result = await response.json();
+                if (result.code === 200) {
+                    Utils.showToast('123网盘API配置已保存', 'success');
+                    document.getElementById('sys123panPassword').value = '';
+                    document.getElementById('sys123panPassword').placeholder = '已设置，留空则保持不变';
+                } else {
+                    Utils.showToast(result.message || '保存失败', 'error');
+                }
+            } catch (e) {
+                Utils.showToast('保存失败', 'error');
+            }
+        }
+
+        function populateSystemSettings(config) {
+            if (config.site) {
+                document.getElementById('sysSiteTitle').value = config.site.title || '';
+                document.getElementById('sysSiteDescription').value = config.site.description || '';
+            }
+            if (config.theme) {
+                document.getElementById('sysPrimaryColor').value = config.theme.primary_color || '#4F46E5';
+                document.getElementById('sysPrimaryColorText').value = config.theme.primary_color || '#4F46E5';
+                document.getElementById('sysBackgroundColor').value = config.theme.background_color || '#f0f4f8';
+                document.getElementById('sysBackgroundColorText').value = config.theme.background_color || '#f0f4f8';
+                document.getElementById('sysFontFamily').value = config.theme.font_family || '';
+            }
+            if (config.upload) {
+                document.getElementById('sysMaxFileSize').value = config.upload.max_file_size || 2147483648;
+                document.getElementById('sysMaxConcurrent').value = config.upload.max_concurrent || 3;
+                document.getElementById('sysAllowedTypes').value = config.upload.allowed_types || '';
+            }
+            if (config.features) {
+                document.getElementById('sysEnableSearch').checked = config.features.enable_search !== false;
+                document.getElementById('sysEnableShare').checked = config.features.enable_share !== false;
+                document.getElementById('sysEnablePreview').checked = config.features.enable_preview !== false;
+                document.getElementById('sysEnableDragDrop').checked = config.features.enable_drag_drop !== false;
+            }
+        }
+
+        async function saveSystemConfig() {
+            const config = {
+                site: {
+                    title: document.getElementById('sysSiteTitle').value,
+                    description: document.getElementById('sysSiteDescription').value
+                },
+                theme: {
+                    primary_color: document.getElementById('sysPrimaryColorText').value,
+                    background_color: document.getElementById('sysBackgroundColorText').value,
+                    font_family: document.getElementById('sysFontFamily').value
+                },
+                upload: {
+                    max_file_size: parseInt(document.getElementById('sysMaxFileSize').value) || 2147483648,
+                    max_concurrent: parseInt(document.getElementById('sysMaxConcurrent').value) || 3,
+                    allowed_types: document.getElementById('sysAllowedTypes').value
+                },
+                features: {
+                    enable_search: document.getElementById('sysEnableSearch').checked,
+                    enable_share: document.getElementById('sysEnableShare').checked,
+                    enable_preview: document.getElementById('sysEnablePreview').checked,
+                    enable_drag_drop: document.getElementById('sysEnableDragDrop').checked
+                }
+            };
+            
+            try {
+                const result = await API.updateConfig(config);
+                if (result.code === 200) {
+                    Utils.showToast('系统设置保存成功', 'success');
+                    systemConfig = config;
+                } else {
+                    Utils.showToast(result.message || '保存失败', 'error');
+                }
+            } catch (e) {
+                Utils.showToast('保存失败', 'error');
+            }
+        }
+
+        function applyThemePreset(preset) {
+            const presets = {
+                default: { primary: '#4F46E5', bg: '#f0f4f8' },
+                green: { primary: '#10B981', bg: '#ecfdf5' },
+                purple: { primary: '#8B5CF6', bg: '#f5f3ff' },
+                dark: { primary: '#6366F1', bg: '#1e1e2e' }
+            };
+            
+            const p = presets[preset];
+            if (p) {
+                document.getElementById('sysPrimaryColor').value = p.primary;
+                document.getElementById('sysPrimaryColorText').value = p.primary;
+                document.getElementById('sysBackgroundColor').value = p.bg;
+                document.getElementById('sysBackgroundColorText').value = p.bg;
+            }
+        }
+
+        async function loadBackups() {
+            try {
+                const result = await API.getBackups();
+                if (result.code === 200 && result.data) {
+                    renderBackupList(result.data.backups || []);
+                }
+            } catch (e) {
+                document.getElementById('sysBackupList').innerHTML = '<div style="color: var(--glass-text-secondary); text-align: center;">加载失败</div>';
+            }
+        }
+
+        function renderBackupList(backups) {
+            const container = document.getElementById('sysBackupList');
+            if (backups.length === 0) {
+                container.innerHTML = '<div style="color: var(--glass-text-secondary); text-align: center; padding: 20px;">暂无备份</div>';
+                return;
+            }
+            
+            container.innerHTML = backups.map(backup => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--glass-border);">
+                    <div>
+                        <div style="font-weight: 500;">${Utils.escapeHtml(backup.name || backup.id)}</div>
+                        <div style="font-size: 12px; color: var(--glass-text-secondary);">${backup.created_at || ''}</div>
+                    </div>
+                    <button class="glass-button glass-button-sm" onclick="restoreBackup('${backup.id}')">恢复</button>
+                </div>
+            `).join('');
+        }
+
+        async function createBackup() {
+            try {
+                const result = await API.createBackup();
+                if (result.code === 200) {
+                    Utils.showToast('备份创建成功', 'success');
+                    loadBackups();
+                } else {
+                    Utils.showToast(result.message || '创建失败', 'error');
+                }
+            } catch (e) {
+                Utils.showToast('创建备份失败', 'error');
+            }
+        }
+
+        async function restoreBackup(backupId) {
+            try {
+                const result = await API.restoreBackup(backupId);
+                if (result.code === 200) {
+                    Utils.showToast('恢复成功', 'success');
+                    loadSystemConfig();
+                } else {
+                    Utils.showToast(result.message || '恢复失败', 'error');
+                }
+            } catch (e) {
+                Utils.showToast('恢复失败', 'error');
+            }
+        }
+
+        async function init() {
+            if (await checkAuth()) {
+                await loadRoles();
+                await loadPermissions();
+                await loadAllUsers();
+                await loadUsers();
+                await loadPathPermissions();
+                await loadSystemConfig();
+                await load123panConfig();
+                await loadBackups();
+                initEventListeners();
+                
+                const roleFilterSelect = document.getElementById('pathPermRoleFilter');
+                roleFilterSelect.innerHTML = '<option value="">选择角色</option>' + 
+                    allRoles.map(r => `<option value="${r.id}">${Utils.escapeHtml(r.name)}</option>`).join('');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

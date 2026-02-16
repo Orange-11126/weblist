@@ -111,7 +111,7 @@ class Pan123:
         return res_code_login
 
     def save_file(self):
-        with open("123pan.txt", "w",encoding="utf_8") as f:
+        with open("settings.json", "w",encoding="utf_8") as f:
             save_list = {
                 "userName": self.user_name,
                 "passWord": self.password,
@@ -648,7 +648,7 @@ class Pan123:
             authorization="",
     ):
         try:
-            with open("123pan.txt", "r",encoding="utf-8") as f:
+            with open("settings.json", "r",encoding="utf-8") as f:
                 text = f.read()
             text = json.loads(text)
             user_name = text["userName"]

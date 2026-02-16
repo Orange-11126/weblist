@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统初始化配置</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-light: #818CF8;
+            --primary-dark: #3730A3;
+            --bg-color: #f5f3ff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg-color) 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .setup-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+        }
+        
+        .setup-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 32px;
+            text-align: center;
+        }
+        
+        .setup-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .setup-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .progress-bar {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 24px;
+            background: #f9fafb;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .step-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+        
+        .step-dot.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+        
+        .step-dot.completed {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .step-line {
+            width: 40px;
+            height: 2px;
+            background: var(--border-color);
+            transition: background 0.3s ease;
+        }
+        
+        .step-line.completed {
+            background: var(--success-color);
+        }
+        
+        .setup-content {
+            padding: 32px;
+            min-height: 400px;
+        }
+        
+        .setup-step {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .setup-step.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .step-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .step-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .form-group label .required {
+            color: var(--error-color);
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+        
+        .form-input.error {
+            border-color: var(--error-color);
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-secondary);
+            padding: 4px;
+        }
+        
+        .password-toggle:hover {
+            color: var(--text-primary);
+        }
+        
+        .error-message {
+            color: var(--error-color);
+            font-size: 13px;
+            margin-top: 6px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .password-strength {
+            margin-top: 12px;
+        }
+        
+        .strength-bar {
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .strength-fill.weak { width: 25%; background: var(--error-color); }
+        .strength-fill.fair { width: 50%; background: var(--warning-color); }
+        .strength-fill.good { width: 75%; background: #3b82f6; }
+        .strength-fill.strong { width: 100%; background: var(--success-color); }
+        
+        .strength-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .strength-requirements {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .requirement {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .requirement.met {
+            color: var(--success-color);
+        }
+        
+        .requirement-icon {
+            font-size: 14px;
+        }
+        
+        .theme-options {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+        
+        .theme-option {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+        
+        .theme-option:hover {
+            transform: scale(1.05);
+        }
+        
+        .theme-option.selected {
+            border-color: var(--text-primary);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+        
+        .theme-option::after {
+            content: attr(data-name);
+            position: absolute;
+            bottom: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        
+        .theme-preview {
+            margin-top: 40px;
+            padding: 20px;
+            border-radius: 16px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .theme-preview-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .preview-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .preview-button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group:hover {
+            background: #f3f4f6;
+        }
+        
+        .checkbox-input {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary-color);
+        }
+        
+        .checkbox-label {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        
+        .checkbox-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .guest-config {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .guest-config.show {
+            display: block;
+        }
+        
+        .summary-section {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .summary-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        
+        .summary-label {
+            color: var(--text-secondary);
+        }
+        
+        .summary-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .setup-footer {
+            padding: 24px 32px;
+            background: #f9fafb;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            background: #f9fafb;
+            border-color: var(--text-secondary);
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .btn-danger {
+            background: white;
+            color: var(--error-color);
+            border: 2px solid var(--error-color);
+        }
+        
+        .btn-danger:hover {
+            background: var(--error-color);
+            color: white;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .success-icon {
+            font-size: 64px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .success-message {
+            text-align: center;
+        }
+        
+        .success-message h2 {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .success-message p {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <h1>🚀 系统初始化配置</h1>
+            <p>欢迎使用个人网盘系统，请完成以下配置</p>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-step">
+                <div class="step-dot active" data-step="1">1</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="progress-step">
+                <div class="step-dot" data-step="2">2</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="progress-step">
+                <div class="step-dot" data-step="3">3</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="progress-step">
+                <div class="step-dot" data-step="4">4</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="progress-step">
+                <div class="step-dot" data-step="5">5</div>
+            </div>
+        </div>
+        
+        <div class="setup-content">
+            <!-- Step 1: 123网盘API配置 -->
+            <div class="setup-step active" data-step="1">
+                <h2 class="step-title">123网盘API配置</h2>
+                <p class="step-description">请输入您的123网盘账号信息，用于访问网盘文件</p>
+                
+                <div class="form-group">
+                    <label>API用户名 <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="panUsername" placeholder="请输入123网盘账号">
+                    <div class="error-message" id="panUsernameError">请输入API用户名</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>API密码 <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <input type="password" class="form-input" id="panPassword" placeholder="请输入123网盘密码" style="padding-right: 44px;">
+                        <button type="button" class="password-toggle" onclick="togglePassword('panPassword', this)">👁</button>
+                    </div>
+                    <div class="error-message" id="panPasswordError">请输入API密码</div>
+                </div>
+            </div>
+            
+            <!-- Step 2: 管理员账户设置 -->
+            <div class="setup-step" data-step="2">
+                <h2 class="step-title">管理员账户设置</h2>
+                <p class="step-description">创建系统管理员账户，用于管理整个系统</p>
+                
+                <div class="form-group">
+                    <label>管理员用户名 <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="adminUsername" placeholder="请输入管理员用户名">
+                    <div class="error-message" id="adminUsernameError">请输入管理员用户名</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>管理员密码 <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <input type="password" class="form-input" id="adminPassword" placeholder="请输入管理员密码" style="padding-right: 44px;" oninput="checkPasswordStrength(this.value)">
+                        <button type="button" class="password-toggle" onclick="togglePassword('adminPassword', this)">👁</button>
+                    </div>
+                    <div class="error-message" id="adminPasswordError">请输入管理员密码</div>
+                    
+                    <div class="password-strength">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <div class="strength-text" id="strengthText">请输入密码</div>
+                        <div class="strength-requirements">
+                            <div class="requirement" id="reqLength"><span class="requirement-icon">○</span> 至少8位字符</div>
+                            <div class="requirement" id="reqUpper"><span class="requirement-icon">○</span> 包含大写字母</div>
+                            <div class="requirement" id="reqLower"><span class="requirement-icon">○</span> 包含小写字母</div>
+                            <div class="requirement" id="reqDigit"><span class="requirement-icon">○</span> 包含数字</div>
+                            <div class="requirement" id="reqSpecial"><span class="requirement-icon">○</span> 包含特殊符号</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>确认密码 <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <input type="password" class="form-input" id="adminPasswordConfirm" placeholder="请再次输入密码" style="padding-right: 44px;">
+                        <button type="button" class="password-toggle" onclick="togglePassword('adminPasswordConfirm', this)">👁</button>
+                    </div>
+                    <div class="error-message" id="adminPasswordConfirmError">两次密码输入不一致</div>
+                </div>
+            </div>
+            
+            <!-- Step 3: 主题色选择 -->
+            <div class="setup-step" data-step="3">
+                <h2 class="step-title">主题色选择</h2>
+                <p class="step-description">选择您喜欢的主题颜色</p>
+                
+                <div class="theme-options">
+                    <div class="theme-option selected" style="background: linear-gradient(135deg, #4F46E5, #3730A3);" data-color="#4F46E5" data-name="典雅蓝" onclick="selectTheme(this)"></div>
+                    <div class="theme-option" style="background: linear-gradient(135deg, #10b981, #059669);" data-color="#10b981" data-name="清新绿" onclick="selectTheme(this)"></div>
+                    <div class="theme-option" style="background: linear-gradient(135deg, #8B5CF6, #6D28D9);" data-color="#8B5CF6" data-name="优雅紫" onclick="selectTheme(this)"></div>
+                    <div class="theme-option" style="background: linear-gradient(135deg, #f59e0b, #d97706);" data-color="#f59e0b" data-name="活力橙" onclick="selectTheme(this)"></div>
+                    <div class="theme-option" style="background: linear-gradient(135deg, #1f2937, #111827);" data-color="#1f2937" data-name="深邃黑" onclick="selectTheme(this)"></div>
+                </div>
+                
+                <div class="theme-preview" id="themePreview">
+                    <div class="theme-preview-header">
+                        <div class="preview-dot" id="previewDot1" style="background: #4F46E5;"></div>
+                        <div class="preview-dot" id="previewDot2" style="background: #818CF8;"></div>
+                        <div class="preview-dot" id="previewDot3" style="background: #C7D2FE;"></div>
+                    </div>
+                    <button class="preview-button" id="previewButton" style="background: #4F46E5;">预览按钮</button>
+                </div>
+            </div>
+            
+            <!-- Step 4: 游客用户配置 -->
+            <div class="setup-step" data-step="4">
+                <h2 class="step-title">游客用户配置</h2>
+                <p class="step-description">配置游客用户的访问权限</p>
+                
+                <label class="checkbox-group">
+                    <input type="checkbox" class="checkbox-input" id="addGuest" onchange="toggleGuestConfig()">
+                    <div>
+                        <div class="checkbox-label">添加游客用户</div>
+                        <div class="checkbox-hint">允许未登录用户以游客身份访问系统</div>
+                    </div>
+                </label>
+                
+                <div class="guest-config" id="guestConfig">
+                    <div class="form-group">
+                        <label>可访问目录路径</label>
+                        <input type="text" class="form-input" id="guestPaths" placeholder="例如: /public 或 /shared" value="/">
+                        <div class="error-message" id="guestPathsError">路径格式无效</div>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+                            游客用户只能访问指定目录及其子目录，多个路径用逗号分隔
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 5: 确认摘要 -->
+            <div class="setup-step" data-step="5">
+                <h2 class="step-title">配置确认</h2>
+                <p class="step-description">请确认以下配置信息</p>
+                
+                <div class="summary-section">
+                    <div class="summary-title">123网盘API配置</div>
+                    <div class="summary-item">
+                        <span class="summary-label">用户名</span>
+                        <span class="summary-value" id="summaryPanUsername">-</span>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <div class="summary-title">管理员账户</div>
+                    <div class="summary-item">
+                        <span class="summary-label">用户名</span>
+                        <span class="summary-value" id="summaryAdminUsername">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">密码</span>
+                        <span class="summary-value">已设置</span>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <div class="summary-title">主题设置</div>
+                    <div class="summary-item">
+                        <span class="summary-label">主题色</span>
+                        <span class="summary-value" id="summaryTheme">典雅蓝</span>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <div class="summary-title">游客用户</div>
+                    <div class="summary-item">
+                        <span class="summary-label">启用状态</span>
+                        <span class="summary-value" id="summaryGuest">不启用</span>
+                    </div>
+                    <div class="summary-item" id="summaryGuestPathsRow" style="display: none;">
+                        <span class="summary-label">可访问路径</span>
+                        <span class="summary-value" id="summaryGuestPaths">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Success Step -->
+            <div class="setup-step" data-step="6">
+                <div class="success-icon">✅</div>
+                <div class="success-message">
+                    <h2>配置完成！</h2>
+                    <p>系统已成功初始化，即将跳转到登录页面...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="setup-footer">
+            <button class="btn btn-danger" id="cancelBtn" onclick="cancelSetup()">取消并退出</button>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()" style="display: none;">上一步</button>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">下一步</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentStep = 1;
+        const totalSteps = 5;
+        let selectedTheme = { color: '#4F46E5', name: '典雅蓝' };
+        
+        function updateProgress() {
+            document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                const step = index + 1;
+                dot.classList.remove('active', 'completed');
+                if (step < currentStep) {
+                    dot.classList.add('completed');
+                    dot.textContent = '✓';
+                } else if (step === currentStep) {
+                    dot.classList.add('active');
+                    dot.textContent = step;
+                } else {
+                    dot.textContent = step;
+                }
+            });
+            
+            document.querySelectorAll('.step-line').forEach((line, index) => {
+                line.classList.toggle('completed', index < currentStep - 1);
+            });
+            
+            document.querySelectorAll('.setup-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            document.querySelector(`.setup-step[data-step="${currentStep}"]`).classList.add('active');
+            
+            document.getElementById('prevBtn').style.display = currentStep > 1 && currentStep <= totalSteps ? 'block' : 'none';
+            document.getElementById('cancelBtn').style.display = currentStep <= totalSteps ? 'block' : 'none';
+            
+            if (currentStep === totalSteps) {
+                document.getElementById('nextBtn').textContent = '完成配置';
+            } else if (currentStep > totalSteps) {
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById('prevBtn').style.display = 'none';
+                document.getElementById('cancelBtn').style.display = 'none';
+            } else {
+                document.getElementById('nextBtn').textContent = '下一步';
+            }
+        }
+        
+        function validateStep(step) {
+            switch(step) {
+                case 1:
+                    const panUsername = document.getElementById('panUsername').value.trim();
+                    const panPassword = document.getElementById('panPassword').value;
+                    
+                    let valid = true;
+                    
+                    if (!panUsername) {
+                        document.getElementById('panUsernameError').classList.add('show');
+                        document.getElementById('panUsername').classList.add('error');
+                        valid = false;
+                    } else {
+                        document.getElementById('panUsernameError').classList.remove('show');
+                        document.getElementById('panUsername').classList.remove('error');
+                    }
+                    
+                    if (!panPassword) {
+                        document.getElementById('panPasswordError').classList.add('show');
+                        document.getElementById('panPassword').classList.add('error');
+                        valid = false;
+                    } else {
+                        document.getElementById('panPasswordError').classList.remove('show');
+                        document.getElementById('panPassword').classList.remove('error');
+                    }
+                    
+                    return valid;
+                    
+                case 2:
+                    const adminUsername = document.getElementById('adminUsername').value.trim();
+                    const adminPassword = document.getElementById('adminPassword').value;
+                    const adminPasswordConfirm = document.getElementById('adminPasswordConfirm').value;
+                    
+                    let valid2 = true;
+                    
+                    if (!adminUsername) {
+                        document.getElementById('adminUsernameError').classList.add('show');
+                        document.getElementById('adminUsername').classList.add('error');
+                        valid2 = false;
+                    } else {
+                        document.getElementById('adminUsernameError').classList.remove('show');
+                        document.getElementById('adminUsername').classList.remove('error');
+                    }
+                    
+                    const strength = calculateStrength(adminPassword);
+                    if (strength < 5) {
+                        document.getElementById('adminPasswordError').textContent = '密码强度不足';
+                        document.getElementById('adminPasswordError').classList.add('show');
+                        document.getElementById('adminPassword').classList.add('error');
+                        valid2 = false;
+                    } else {
+                        document.getElementById('adminPasswordError').classList.remove('show');
+                        document.getElementById('adminPassword').classList.remove('error');
+                    }
+                    
+                    if (adminPassword !== adminPasswordConfirm) {
+                        document.getElementById('adminPasswordConfirmError').classList.add('show');
+                        document.getElementById('adminPasswordConfirm').classList.add('error');
+                        valid2 = false;
+                    } else {
+                        document.getElementById('adminPasswordConfirmError').classList.remove('show');
+                        document.getElementById('adminPasswordConfirm').classList.remove('error');
+                    }
+                    
+                    return valid2;
+                    
+                case 4:
+                    updateSummary();
+                    return true;
+                    
+                case 5:
+                    return submitSetup();
+                    
+                default:
+                    return true;
+            }
+        }
+        
+        function nextStep() {
+            if (validateStep(currentStep)) {
+                if (currentStep === totalSteps) {
+                    return;
+                }
+                currentStep++;
+                updateProgress();
+            }
+        }
+        
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateProgress();
+            }
+        }
+        
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁';
+            }
+        }
+        
+        function calculateStrength(password) {
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[a-z]/.test(password)) score++;
+            if (/[0-9]/.test(password)) score++;
+            if (/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) score++;
+            return score;
+        }
+        
+        function checkPasswordStrength(password) {
+            const score = calculateStrength(password);
+            const fill = document.getElementById('strengthFill');
+            const text = document.getElementById('strengthText');
+            
+            fill.className = 'strength-fill';
+            
+            if (password.length === 0) {
+                text.textContent = '请输入密码';
+                fill.style.width = '0%';
+            } else if (score <= 1) {
+                fill.classList.add('weak');
+                text.textContent = '密码强度：弱';
+            } else if (score <= 2) {
+                fill.classList.add('fair');
+                text.textContent = '密码强度：一般';
+            } else if (score <= 3) {
+                fill.classList.add('good');
+                text.textContent = '密码强度：良好';
+            } else {
+                fill.classList.add('strong');
+                text.textContent = '密码强度：强';
+            }
+            
+            document.getElementById('reqLength').classList.toggle('met', password.length >= 8);
+            document.getElementById('reqLength').querySelector('.requirement-icon').textContent = password.length >= 8 ? '✓' : '○';
+            
+            document.getElementById('reqUpper').classList.toggle('met', /[A-Z]/.test(password));
+            document.getElementById('reqUpper').querySelector('.requirement-icon').textContent = /[A-Z]/.test(password) ? '✓' : '○';
+            
+            document.getElementById('reqLower').classList.toggle('met', /[a-z]/.test(password));
+            document.getElementById('reqLower').querySelector('.requirement-icon').textContent = /[a-z]/.test(password) ? '✓' : '○';
+            
+            document.getElementById('reqDigit').classList.toggle('met', /[0-9]/.test(password));
+            document.getElementById('reqDigit').querySelector('.requirement-icon').textContent = /[0-9]/.test(password) ? '✓' : '○';
+            
+            document.getElementById('reqSpecial').classList.toggle('met', /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password));
+            document.getElementById('reqSpecial').querySelector('.requirement-icon').textContent = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password) ? '✓' : '○';
+        }
+        
+        function selectTheme(el) {
+            document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedTheme = { color: el.dataset.color, name: el.dataset.name };
+            
+            document.getElementById('previewDot1').style.background = selectedTheme.color;
+            document.getElementById('previewDot2').style.background = selectedTheme.color + '99';
+            document.getElementById('previewDot3').style.background = selectedTheme.color + '44';
+            document.getElementById('previewButton').style.background = selectedTheme.color;
+            
+            document.documentElement.style.setProperty('--primary-color', selectedTheme.color);
+        }
+        
+        function toggleGuestConfig() {
+            const checkbox = document.getElementById('addGuest');
+            const config = document.getElementById('guestConfig');
+            config.classList.toggle('show', checkbox.checked);
+        }
+        
+        function updateSummary() {
+            document.getElementById('summaryPanUsername').textContent = document.getElementById('panUsername').value || '-';
+            document.getElementById('summaryAdminUsername').textContent = document.getElementById('adminUsername').value || '-';
+            document.getElementById('summaryTheme').textContent = selectedTheme.name;
+            
+            const addGuest = document.getElementById('addGuest').checked;
+            document.getElementById('summaryGuest').textContent = addGuest ? '启用' : '不启用';
+            document.getElementById('summaryGuestPathsRow').style.display = addGuest ? 'flex' : 'none';
+            document.getElementById('summaryGuestPaths').textContent = document.getElementById('guestPaths').value || '/';
+        }
+        
+        async function submitSetup() {
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.disabled = true;
+            nextBtn.innerHTML = '<span class="loading"></span> 配置中...';
+            
+            try {
+                const response = await fetch('/api/setup/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pan_username: document.getElementById('panUsername').value.trim(),
+                        pan_password: document.getElementById('panPassword').value,
+                        admin_username: document.getElementById('adminUsername').value.trim(),
+                        admin_password: document.getElementById('adminPassword').value,
+                        theme_color: selectedTheme.color,
+                        add_guest: document.getElementById('addGuest').checked,
+                        guest_paths: document.getElementById('guestPaths').value || '/'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    currentStep = 6;
+                    updateProgress();
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    alert(result.message || '配置失败');
+                    nextBtn.disabled = false;
+                    nextBtn.textContent = '完成配置';
+                }
+            } catch (e) {
+                alert('配置失败: ' + e.message);
+                nextBtn.disabled = false;
+                nextBtn.textContent = '完成配置';
+            }
+        }
+        
+        function cancelSetup() {
+            if (confirm('确定要取消配置并退出吗？系统将无法正常使用。')) {
+                window.close();
+            }
+        }
+        
+        updateProgress();
+    </script>
+</body>
+</html>

@@ -58,15 +58,15 @@ function populateSettings(config) {
 }
 
 function setupSettingsListeners() {
-    document.querySelectorAll('.settings-nav-item').forEach(item => {
+    document.querySelectorAll('.glass-settings-nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             const section = item.dataset.section;
             
-            document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.glass-settings-nav-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             
-            document.querySelectorAll('.settings-section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.glass-settings-section').forEach(s => s.style.display = 'none');
             document.getElementById(section).style.display = 'block';
         });
     });
@@ -85,7 +85,7 @@ function setupSettingsListeners() {
         });
     });
     
-    document.querySelectorAll('.color-input input[type="text"]').forEach(el => {
+    document.querySelectorAll('.glass-color-input input[type="text"]').forEach(el => {
         el.addEventListener('change', () => {
             const colorInput = document.getElementById(el.id.replace('Text', ''));
             if (colorInput && /^#[0-9A-Fa-f]{6}$/.test(el.value)) {
@@ -95,7 +95,7 @@ function setupSettingsListeners() {
         });
     });
     
-    document.querySelectorAll('.preset-btn').forEach(btn => {
+    document.querySelectorAll('.glass-preset-grid button').forEach(btn => {
         btn.addEventListener('click', () => {
             const preset = btn.dataset.preset;
             applyPreset(preset);
@@ -270,66 +270,62 @@ async function loadBackups() {
     
     if (result.code === 200 && result.data?.backups) {
         if (result.data.backups.length === 0) {
-            backupList.innerHTML = '<p class="empty-state">暂无备份</p>';
+            backupList.innerHTML = '<p style="color: var(--glass-text-secondary);">暂无备份</p>';
             return;
         }
         
         backupList.innerHTML = result.data.backups.map(backup => `
-            <div class="backup-item">
-                <div class="backup-info">
-                    <div>${backup.backup_id}</div>
-                    <div class="backup-time">${Utils.formatDate(backup.created_at)}</div>
+            <div class="glass-backup-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: var(--glass-bg); border-radius: 8px;">
+                <div>
+                    <div style="font-weight: 500;">${backup.backup_id}</div>
+                    <div style="font-size: 12px; color: var(--glass-text-secondary);">${Utils.formatDate(backup.created_at)}</div>
                 </div>
-                <button class="btn btn-sm btn-secondary" onclick="restoreBackup('${backup.backup_id}')">恢复</button>
+                <button class="glass-button glass-button-sm glass-button-secondary" onclick="restoreBackup('${backup.backup_id}')">恢复</button>
             </div>
         `).join('');
     }
 }
 
 async function restoreBackup(backupId) {
-    const confirmed = await Utils.showConfirm('确认恢复', '恢复备份将覆盖当前配置，确定要继续吗？');
+    if (!confirm('恢复备份将覆盖当前配置，确定要继续吗？')) return;
     
-    if (confirmed) {
-        const result = await API.restoreBackup(backupId);
-        
-        if (result.code === 200) {
-            Utils.showToast('配置已恢复', 'success');
-            loadSettings();
-        } else {
-            Utils.showToast(result.message || '恢复失败', 'error');
-        }
+    const result = await API.restoreBackup(backupId);
+    
+    if (result.code === 200) {
+        Utils.showToast('配置已恢复', 'success');
+        loadSettings();
+    } else {
+        Utils.showToast(result.message || '恢复失败', 'error');
     }
 }
 
 async function restoreDefault() {
-    const confirmed = await Utils.showConfirm('确认恢复', '确定要恢复默认设置吗？');
+    if (!confirm('确定要恢复默认设置吗？')) return;
     
-    if (confirmed) {
-        const defaultConfig = {
-            site: {
-                title: '个人网盘',
-                description: '基于123网盘的个人文件管理系统',
-                keywords: ['网盘', '文件管理', '云存储']
-            },
-            theme: {
-                primary_color: '#1890ff',
-                secondary_color: '#52c41a',
-                background_color: '#f5f5f5',
-                text_color: '#333333',
-                border_color: '#d9d9d9',
-                hover_color: '#40a9ff'
-            },
-            upload: {
-                max_file_size: 2147483648,
-                allowed_types: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'rar']
-            }
-        };
-        
-        currentConfig = defaultConfig;
-        populateSettings(currentConfig);
-        applyTheme(currentConfig.theme);
-        Utils.showToast('已恢复默认设置，请点击保存按钮生效', 'success');
-    }
+    const defaultConfig = {
+        site: {
+            title: '个人网盘',
+            description: '基于123网盘的个人文件管理系统',
+            keywords: ['网盘', '文件管理', '云存储']
+        },
+        theme: {
+            primary_color: '#1890ff',
+            secondary_color: '#52c41a',
+            background_color: '#f5f5f5',
+            text_color: '#333333',
+            border_color: '#d9d9d9',
+            hover_color: '#40a9ff'
+        },
+        upload: {
+            max_file_size: 2147483648,
+            allowed_types: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'zip', 'rar']
+        }
+    };
+    
+    currentConfig = defaultConfig;
+    populateSettings(currentConfig);
+    applyTheme(currentConfig.theme);
+    Utils.showToast('已恢复默认设置，请点击保存按钮生效', 'success');
 }
 
 window.restoreBackup = restoreBackup;
