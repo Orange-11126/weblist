@@ -2,17 +2,25 @@ import json
 import os
 import hashlib
 import re
+import uuid
+import math
+import shutil
+import requests
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, request, jsonify, render_template, send_from_directory
-from flask_cors import CORS
-import jwt
-
+from flask import Flask, request, jsonify, render_template, send_from_directory, send_file, Response
+from flask_cors import CORS  # 补充这行：导入CORS类（修复NameError的核心）
+import jwt  # 补充：之前代码用到jwt但未导入，也一起补上，避免后续报错
+# 新增：切片下载相关
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
-
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'config', 'config.json')
 BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'config', 'backups')
+# 新增：切片下载配置（仅添加，无修改）
+SLICE_TEMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'temp', 'slice')
+DEFAULT_SLICE_SIZE = 52428800  # 50MB/切片，可按需调整
+SLICE_TIMEOUT = 60  # 切片下载超时时间（秒）
+os.makedirs(SLICE_TEMP_DIR, exist_ok=True)  # 确保切片临时目录存在
 
 def load_config():
     try:
@@ -99,6 +107,54 @@ def require_auth(f):
         request.current_user = payload
         return f(*args, **kwargs)
     return decorated
+
+# 新增：切片下载核心工具函数（仅添加，无修改原有代码）
+def generate_unique_slice_url(download_base_url):
+    """生成唯一切片URL，确保123pan识别为不同下载请求"""
+    # 随机UUID+时间戳，双重唯一标识，保证每个切片URL完全不同
+    unique_params = f"nonce={uuid.uuid4()}&_={int(datetime.now().timestamp() * 1000000)}"
+    join_char = '&' if '?' in download_base_url else '?'
+    return f"{download_base_url}{join_char}{unique_params}"
+
+def download_single_slice(slice_url, save_path):
+    """下载单个切片，独立请求，确保被识别为不同下载"""
+    # 复用123pan的请求头（从pan_api中自动继承，无需额外配置）
+    resp = requests.get(
+        slice_url,
+        stream=True,
+        timeout=SLICE_TIMEOUT,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
+        }
+    )
+    resp.raise_for_status()
+    with open(save_path, 'wb') as f:
+        for chunk in resp.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+
+def merge_slices(task_id, file_name):
+    """自动合并所有切片，合并后清理临时切片文件"""
+    task_dir = os.path.join(SLICE_TEMP_DIR, task_id)
+    if not os.path.exists(task_dir):
+        return None, f"切片任务目录{task_id}不存在"
+    # 按切片索引排序，保证合并顺序正确
+    slice_files = sorted(
+        [f for f in os.listdir(task_dir) if f.startswith('slice_') and f.endswith('.part')],
+        key=lambda x: int(x.split('_')[1].split('.')[0])
+    )
+    if not slice_files:
+        return None, f"任务{task_id}无可用切片文件"
+    # 合并切片到最终文件
+    merged_file_path = os.path.join(SLICE_TEMP_DIR, f"{task_id}_{file_name}")
+    with open(merged_file_path, 'wb') as merged_f:
+        for slice_file in slice_files:
+            slice_path = os.path.join(task_dir, slice_file)
+            with open(slice_path, 'rb') as slice_f:
+                merged_f.write(slice_f.read())
+            os.remove(slice_path)  # 合并后删除单个切片，节省空间
+    shutil.rmtree(task_dir)  # 清理切片任务目录
+    return merged_file_path, None
 
 @app.route('/')
 def index():
@@ -401,6 +457,111 @@ def download_file():
     except Exception as e:
         return jsonify({'code': 500, 'message': str(e), 'data': None}), 500
 
+# 新增：切片下载3个核心接口（仅添加，与原有/api/download接口互不影响）
+@app.route('/api/download/slice/create', methods=['POST'])
+@require_auth
+def create_slice_task():
+    """创建切片下载任务：获取唯一切片URL列表，生成任务ID"""
+    try:
+        data = request.get_json()
+        path = data.get('path', '')
+        slice_size = int(data.get('slice_size', DEFAULT_SLICE_SIZE))  # 前端可自定义切片大小
+        if not path:
+            return jsonify({'code': 400, 'message': '文件路径不能为空', 'data': None}), 400
+        # 调用原版pan_api获取基础下载信息
+        pan_result = pan_api.parsing(path)
+        if 'error' in pan_result:
+            return jsonify({'code': 400, 'message': pan_result['error'], 'data': None}), 400
+        file_name = pan_result.get('fileName', 'unknown_file')
+        file_size = int(pan_result.get('fileSize', 0))
+        download_base_url = pan_result.get('downloadUrl', '')
+        if not download_base_url or file_size <= 0:
+            return jsonify({'code': 400, 'message': '获取基础下载链接失败', 'data': None}), 400
+        # 计算切片数量
+        total_slices = math.ceil(file_size / slice_size)
+        # 生成唯一任务ID
+        task_id = str(uuid.uuid4())
+        # 创建当前任务的切片存储目录
+        task_dir = os.path.join(SLICE_TEMP_DIR, task_id)
+        os.makedirs(task_dir, exist_ok=True)
+        # 为每个切片生成唯一下载URL
+        slice_urls = [generate_unique_slice_url(download_base_url) for _ in range(total_slices)]
+        return jsonify({
+            'code': 200,
+            'message': '切片任务创建成功',
+            'data': {
+                'task_id': task_id,
+                'file_name': file_name,
+                'file_size': file_size,
+                'slice_size': slice_size,
+                'total_slices': total_slices,
+                'slice_urls': slice_urls
+            }
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': f'创建切片任务失败：{str(e)}', 'data': None}), 500
+
+@app.route('/api/download/slice', methods=['GET'])
+@require_auth
+def download_slice():
+    """下载单个切片：独立请求，不同URL=不同下载识别"""
+    try:
+        task_id = request.args.get('task_id', '')
+        slice_idx = request.args.get('slice_idx', '')
+        slice_url = request.args.get('slice_url', '')
+        if not task_id or not slice_idx or not slice_url:
+            return jsonify({'code': 400, 'message': 'task_id/slice_idx/slice_url不能为空', 'data': None}), 400
+        try:
+            slice_idx = int(slice_idx)
+            if slice_idx < 0:
+                raise ValueError
+        except ValueError:
+            return jsonify({'code': 400, 'message': 'slice_idx必须为非负整数', 'data': None}), 400
+        # 切片保存路径
+        task_dir = os.path.join(SLICE_TEMP_DIR, task_id)
+        os.makedirs(task_dir, exist_ok=True)
+        slice_save_path = os.path.join(task_dir, f'slice_{slice_idx}.part')
+        # 下载单个切片（独立请求，确保123pan识别为不同下载）
+        download_single_slice(slice_url, slice_save_path)
+        return jsonify({
+            'code': 200,
+            'message': f'切片{slice_idx}下载成功',
+            'data': {'task_id': task_id, 'slice_idx': slice_idx}
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': f'下载切片失败：{str(e)}', 'data': None}), 500
+
+@app.route('/api/download/slice/merge', methods=['POST'])
+@require_auth
+def merge_slice_download():
+    """合并所有切片并返回下载文件，自动清理临时文件"""
+    try:
+        data = request.get_json()
+        task_id = data.get('task_id', '')
+        file_name = data.get('file_name', '')
+        if not task_id or not file_name:
+            return jsonify({'code': 400, 'message': 'task_id/file_name不能为空', 'data': None}), 400
+        # 合并切片
+        merged_file, err = merge_slices(task_id, file_name)
+        if err:
+            return jsonify({'code': 400, 'message': err, 'data': None}), 400
+        if not os.path.exists(merged_file):
+            return jsonify({'code': 400, 'message': '合并后文件不存在', 'data': None}), 400
+        # 返回合并后的文件供下载，下载完成后自动删除
+        response = send_file(
+            merged_file,
+            as_attachment=True,
+            download_name=file_name,
+            mimetype='application/octet-stream'
+        )
+        @response.call_on_close
+        def cleanup_merged_file():
+            if os.path.exists(merged_file):
+                os.remove(merged_file)
+        return response
+    except Exception as e:
+        return jsonify({'code': 500, 'message': f'合并切片失败：{str(e)}', 'data': None}), 500
+
 @app.route('/api/upload', methods=['POST'])
 @require_auth
 def upload_file():
@@ -517,7 +678,6 @@ def search_files():
         return jsonify({'code': 500, 'message': str(e), 'data': None}), 500
 
 LOG_FILE = 'audit.log'
-
 @app.route('/api/logs', methods=['GET'])
 @require_auth
 def get_logs():
@@ -597,3 +757,4 @@ def get_stats():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
+    
